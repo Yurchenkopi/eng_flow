@@ -1,0 +1,95 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-projects
+      author: engflow
+      changes:
+        - createTable:
+            tableName: projects
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: designation
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_projects_designation
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: modification_name
+                  type: VARCHAR(255)
+              - column:
+                  name: customer_id
+                  type: BIGINT
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completion_date
+                  type: DATE
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: based_on_project_id
+                  type: BIGINT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE projects ADD CONSTRAINT ck_projects_quantity_positive CHECK (quantity > 0)
+        - addForeignKeyConstraint:
+            baseTableName: projects
+            baseColumnNames: customer_id
+            referencedTableName: organizations
+            referencedColumnNames: id
+            constraintName: fk_projects_customer
+        - addForeignKeyConstraint:
+            baseTableName: projects
+            baseColumnNames: based_on_project_id
+            referencedTableName: projects
+            referencedColumnNames: id
+            constraintName: fk_projects_based_on_project
+        - createIndex:
+            tableName: projects
+            indexName: idx_projects_customer_id
+            columns:
+              - column:
+                  name: customer_id
+        - createIndex:
+            tableName: projects
+            indexName: idx_projects_based_on_project_id
+            columns:
+              - column:
+                  name: based_on_project_id
+        - createIndex:
+            tableName: projects
+            indexName: idx_projects_status
+            columns:
+              - column:
+                  name: status

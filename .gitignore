@@ -8,6 +8,7 @@ hs_err_pid*
 replay_pid*
 
 # Common build directories
+.mvn-cache/
 .gradle/
 build/
 out/

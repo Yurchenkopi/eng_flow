@@ -2,7 +2,7 @@
 
 ## Project status
 
-This repository is intended for a Java project. No application framework, package manager, build system, or test framework has been selected yet, and application source code has not been created.
+This repository is a Java 21 web application built with Spring Boot 4.1.1 and Maven. It uses Spring MVC, Spring Data JPA, Thymeleaf, Bean Validation, PostgreSQL, Liquibase, and Bootstrap 5.
 
 ## Project identity
 
@@ -35,10 +35,11 @@ Typical package names include `ru.yurch.engflow.controller`, `ru.yurch.engflow.s
 - Use lowercase kebab-case and plural form where natural, for example `/projects`, `/organizations`, `/purchase-orders`, `/transfer-acts`, and `/official-letters`.
 - Java naming is independent from URL naming.
 
-### Flyway
+### Liquibase
 
-- Future migration files use standard Flyway naming, for example `V1__create_organizations.sql` and `V2__create_projects.sql`.
-- Do not create migrations until the implementation stage explicitly requires them.
+- Liquibase is the only database migration system used by the project; do not add Flyway migrations or dependencies.
+- Use YAML changelog files.
+- The root changelog is `src/main/resources/db/changelog/db.changelog-master.yaml`.
 
 ## Primary project documents
 
@@ -56,8 +57,10 @@ Typical package names include `ru.yurch.engflow.controller`, `ru.yurch.engflow.s
 
 ## Verification
 
-- Use the project's own documented build, lint, and test commands once they exist.
-- Until tooling is added, verify changes with the narrowest relevant checks available and report any verification that could not be performed.
+- Run tests with `mvn test`.
+- Build the executable application with `mvn package`.
+- Run locally with `mvn spring-boot:run` after PostgreSQL connection variables are configured.
+- Verify changes with the narrowest relevant checks available and report any verification that could not be performed.
 
 ## Documentation maintenance
 

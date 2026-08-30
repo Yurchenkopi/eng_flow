@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navigation('organizations')}"></nav>
+<main class="container-fluid px-4 py-4">
+    <div class="page-heading mb-3"><h1 th:text="${pageTitle}"></h1><p>Основные реквизиты организации</p></div>
+    <form class="content-card form-card" th:object="${organization}"
+          th:action="${organization.id == null} ? @{/organizations} : @{/organizations/{id}(id=${organization.id})}" method="post">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <label class="form-label" for="name">Наименование <span class="required">*</span></label>
+                <input class="form-control" th:errorclass="is-invalid" id="name" th:field="*{name}" maxlength="255">
+                <div class="invalid-feedback" th:errors="*{name}"></div>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="shortName">Краткое наименование</label>
+                <input class="form-control" th:errorclass="is-invalid" id="shortName" th:field="*{shortName}" maxlength="100">
+                <div class="invalid-feedback" th:errors="*{shortName}"></div>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="inn">ИНН</label>
+                <input class="form-control" th:errorclass="is-invalid" id="inn" th:field="*{inn}" maxlength="12">
+                <div class="invalid-feedback" th:errors="*{inn}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="notes">Примечания</label>
+                <textarea class="form-control" id="notes" th:field="*{notes}" rows="5"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+            <a class="btn btn-outline-secondary" th:href="@{/organizations}">Отмена</a>
+        </div>
+    </form>
+</main>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

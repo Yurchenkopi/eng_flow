@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Главная')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navigation('home')}"></nav>
+<main class="container-fluid px-4 py-4">
+    <div class="page-heading mb-4">
+        <h1>Обзор</h1>
+        <p>Текущее состояние инженерных проектов</p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card"><span>Всего проектов</span><strong th:text="${totalProjects}">0</strong></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card metric-design"><span>Проектирование</span><strong th:text="${designProjects}">0</strong></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card metric-production"><span>Производство</span><strong th:text="${productionProjects}">0</strong></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card metric-completed"><span>Завершено</span><strong th:text="${completedProjects}">0</strong></div>
+        </div>
+    </div>
+
+    <section class="content-card">
+        <div class="content-card-header d-flex justify-content-between align-items-center">
+            <h2>Последние проекты</h2>
+            <a class="btn btn-sm btn-primary" th:href="@{/projects/new}">Новый проект</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm app-table mb-0">
+                <thead><tr><th>Обозначение</th><th>Наименование</th><th>Статус</th><th>Заказчик</th></tr></thead>
+                <tbody>
+                <tr th:each="project : ${recentProjects}">
+                    <td><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.designation}"></a></td>
+                    <td th:text="${project.name}"></td>
+                    <td th:text="${project.status.displayName}"></td>
+                    <td th:text="${project.customer != null ? project.customer.name : '—'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentProjects)}"><td colspan="4" class="empty-state">Проекты пока не созданы</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

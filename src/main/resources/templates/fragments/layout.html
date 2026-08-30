@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="navigation(activePage)" class="navbar navbar-expand-lg navbar-dark app-navbar">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-semibold" th:href="@{/}">EngFlow</a>
+        <div class="navbar-nav">
+            <a class="nav-link" th:classappend="${activePage == 'home'} ? ' active'" th:href="@{/}">Главная</a>
+            <a class="nav-link" th:classappend="${activePage == 'projects'} ? ' active'" th:href="@{/projects}">Проекты</a>
+            <a class="nav-link" th:classappend="${activePage == 'organizations'} ? ' active'" th:href="@{/organizations}">Организации</a>
+        </div>
+    </div>
+</nav>
+
+<th:block th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title + ' — EngFlow'}">EngFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link th:href="@{/css/app.css}" rel="stylesheet">
+</th:block>
+
+<div th:fragment="messages" class="mb-3" th:if="${successMessage}">
+    <div class="alert alert-success py-2 mb-0" role="alert" th:text="${successMessage}"></div>
+</div>
+
+<script th:fragment="scripts" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

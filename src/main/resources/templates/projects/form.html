@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navigation('projects')}"></nav>
+<main class="container-fluid px-4 py-4">
+    <div class="page-heading mb-3"><h1 th:text="${pageTitle}"></h1><p>Основные сведения об инженерном проекте</p></div>
+    <form class="content-card form-card" th:object="${project}"
+          th:action="${project.id == null} ? @{/projects} : @{/projects/{id}(id=${project.id})}" method="post">
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <label class="form-label" for="designation">Обозначение <span class="required">*</span></label>
+                <input class="form-control" th:errorclass="is-invalid" id="designation" th:field="*{designation}" maxlength="100" placeholder="ИТ319.00.00.000">
+                <div class="invalid-feedback" th:errors="*{designation}"></div>
+            </div>
+            <div class="col-lg-8">
+                <label class="form-label" for="name">Наименование <span class="required">*</span></label>
+                <input class="form-control" th:errorclass="is-invalid" id="name" th:field="*{name}" maxlength="255">
+                <div class="invalid-feedback" th:errors="*{name}"></div>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="modificationName">Модификация</label>
+                <input class="form-control" th:errorclass="is-invalid" id="modificationName" th:field="*{modificationName}" maxlength="255">
+                <div class="invalid-feedback" th:errors="*{modificationName}"></div>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="customer">Заказчик</label>
+                <select class="form-select" id="customer" th:field="*{customer}">
+                    <option value="">Не указан</option>
+                    <option th:each="organization : ${organizations}" th:value="${organization.id}" th:text="${organization.name}"></option>
+                </select>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="basedOnProject">На основе проекта</label>
+                <select class="form-select" id="basedOnProject" th:field="*{basedOnProject}">
+                    <option value="">Не указан</option>
+                    <option th:each="baseProject : ${availableBaseProjects}"
+                            th:if="${project.id == null or baseProject.id != project.id}"
+                            th:value="${baseProject.id}"
+                            th:text="${baseProject.designation + ' — ' + baseProject.name}"></option>
+                </select>
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label" for="status">Статус <span class="required">*</span></label>
+                <select class="form-select" th:errorclass="is-invalid" id="status" th:field="*{status}">
+                    <option th:each="status : ${statuses}" th:value="${status}" th:text="${status.displayName}"></option>
+                </select>
+                <div class="invalid-feedback" th:errors="*{status}"></div>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label" for="quantity">Количество <span class="required">*</span></label>
+                <input type="number" min="1" class="form-control" th:errorclass="is-invalid" id="quantity" th:field="*{quantity}">
+                <div class="invalid-feedback" th:errors="*{quantity}"></div>
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label" for="completionDate">Фактическая дата завершения</label>
+                <input type="date" class="form-control" id="completionDate" th:field="*{completionDate}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="description">Описание</label>
+                <textarea class="form-control" id="description" th:field="*{description}" rows="5"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+            <a class="btn btn-outline-secondary" th:href="${project.id == null} ? @{/projects} : @{/projects/{id}(id=${project.id})}">Отмена</a>
+        </div>
+    </form>
+</main>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

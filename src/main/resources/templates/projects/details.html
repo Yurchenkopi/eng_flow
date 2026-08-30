@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${project.designation})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navigation('projects')}"></nav>
+<main class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="page-heading"><h1 th:text="${project.designation}"></h1><p th:text="${project.name}"></p></div>
+        <a class="btn btn-primary" th:href="@{/projects/{id}/edit(id=${project.id})}">Редактировать</a>
+    </div>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <section class="content-card details-card">
+        <div class="row">
+            <div class="col-xl-8">
+                <dl class="row detail-list mb-0">
+                    <dt class="col-sm-4">Обозначение</dt><dd class="col-sm-8" th:text="${project.designation}"></dd>
+                    <dt class="col-sm-4">Наименование</dt><dd class="col-sm-8" th:text="${project.name}"></dd>
+                    <dt class="col-sm-4">Модификация</dt><dd class="col-sm-8" th:text="${project.modificationName ?: '—'}"></dd>
+                    <dt class="col-sm-4">Заказчик</dt><dd class="col-sm-8" th:text="${project.customer != null ? project.customer.name : '—'}"></dd>
+                    <dt class="col-sm-4">Статус</dt><dd class="col-sm-8"><span class="status-badge" th:classappend="${' status-' + #strings.toLowerCase(project.status.name())}" th:text="${project.status.displayName}"></span></dd>
+                    <dt class="col-sm-4">Количество</dt><dd class="col-sm-8" th:text="${project.quantity}"></dd>
+                    <dt class="col-sm-4">Дата завершения</dt><dd class="col-sm-8" th:text="${project.completionDate != null ? #temporals.format(project.completionDate, 'dd.MM.yyyy') : '—'}"></dd>
+                    <dt class="col-sm-4">Исходный проект</dt><dd class="col-sm-8"><a th:if="${project.basedOnProject != null}" th:href="@{/projects/{id}(id=${project.basedOnProject.id})}" th:text="${project.basedOnProject.designation}"></a><span th:if="${project.basedOnProject == null}">—</span></dd>
+                    <dt class="col-sm-4">Описание</dt><dd class="col-sm-8 preserve-lines" th:text="${project.description ?: '—'}"></dd>
+                </dl>
+            </div>
+        </div>
+    </section>
+    <a class="btn btn-link px-0 mt-3" th:href="@{/projects}">← К списку проектов</a>
+</main>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>
