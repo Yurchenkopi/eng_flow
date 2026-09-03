@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-project-items
+      author: engflow
+      changes:
+        - createTable:
+            tableName: project_items
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: project_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: catalog_item_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: project_assembly_id, type: BIGINT }
+              - column: { name: required_quantity, type: 'NUMERIC(19,4)', constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+        - sql: { sql: 'ALTER TABLE project_items ADD CONSTRAINT ck_project_items_required_quantity_positive CHECK (required_quantity > 0)' }
+        - addForeignKeyConstraint: { baseTableName: project_items, baseColumnNames: project_id, referencedTableName: projects, referencedColumnNames: id, constraintName: fk_project_items_project }
+        - addForeignKeyConstraint: { baseTableName: project_items, baseColumnNames: catalog_item_id, referencedTableName: catalog_items, referencedColumnNames: id, constraintName: fk_project_items_catalog_item }
+        - addForeignKeyConstraint: { baseTableName: project_items, baseColumnNames: project_assembly_id, referencedTableName: project_assemblies, referencedColumnNames: id, constraintName: fk_project_items_project_assembly }
+        - createIndex:
+            tableName: project_items
+            indexName: idx_project_items_project_id
+            columns: [{ column: { name: project_id } }]
+        - createIndex:
+            tableName: project_items
+            indexName: idx_project_items_catalog_item_id
+            columns: [{ column: { name: catalog_item_id } }]
+        - createIndex:
+            tableName: project_items
+            indexName: idx_project_items_project_assembly_id
+            columns: [{ column: { name: project_assembly_id } }]

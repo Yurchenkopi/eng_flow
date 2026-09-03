@@ -41,6 +41,30 @@ body {
 .app-table tbody tr:hover { background: #fafbfd; }
 .empty-state { color: var(--app-muted); text-align: center; padding: 2.5rem !important; }
 .notes-cell { max-width: 380px; }
+.compact-table { min-width: 900px; }
+.compact-table tbody td { vertical-align: middle; }
+.section-title { font-size: 1rem; font-weight: 650; margin: 0 0 0.75rem; }
+.nav-tabs .nav-link { color: #526172; }
+.configuration-preview { align-items: center; background: #fff; border: 1px solid var(--app-border); border-radius: 0.55rem; color: inherit; display: flex; justify-content: space-between; padding: 1rem 1.15rem; text-decoration: none; }
+.configuration-preview:hover { border-color: #9eb5cc; background: #fbfcfd; }
+.configuration-preview strong, .configuration-preview span { display: block; }
+.configuration-preview span { color: var(--app-muted); font-size: 0.84rem; }
+.configuration-preview .configuration-arrow { color: #416c99; font-size: 1.5rem; }
+.configuration-title { font-size: 1.15rem; margin: 0.7rem 0 0; }
+.configuration-table { min-width: 1280px; }
+.app-table thead a { color: inherit; text-decoration: none; }
+.autocomplete { position: relative; }
+.autocomplete-results { background: #fff; border: 1px solid #cfd7df; border-radius: 0.4rem; box-shadow: 0 0.4rem 1rem rgba(20,34,50,.12); left: 0; max-height: 340px; overflow-y: auto; position: absolute; right: 0; top: calc(100% + 3px); z-index: 20; }
+.autocomplete-option { background: #fff; border: 0; border-bottom: 1px solid #edf0f3; display: block; padding: .65rem .8rem; text-align: left; width: 100%; }
+.autocomplete-option:hover, .autocomplete-option:focus { background: #f3f7fb; }
+.autocomplete-option strong, .autocomplete-option span { display: block; }
+.autocomplete-option span { color: var(--app-muted); font-size: .8rem; margin-top: .15rem; }
+.autocomplete-empty, .autocomplete-create { display: block; padding: .7rem .8rem; }
+.autocomplete-empty { color: var(--app-muted); }
+.autocomplete-create { background: #f7f9fb; font-weight: 600; text-decoration: none; }
+.selected-item { background: #edf6ff; border: 1px solid #bad5ed; border-radius: .4rem; padding: .55rem .7rem; }
+.selected-item strong, .selected-item span { display: block; }
+.selected-item span { color: var(--app-muted); font-size: .8rem; }
 
 .status-badge { border-radius: 1rem; display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 0.22rem 0.55rem; background: #eef1f4; color: #4e5c6b; }
 .status-design { background: #e8f0fb; color: #315f9d; }

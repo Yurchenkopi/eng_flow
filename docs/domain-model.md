@@ -86,7 +86,7 @@ erDiagram
 
 **Назначение:** позиция общего каталога ранее использованных покупных изделий.
 
-Поля: `id`, `designation`, `name`, `manufacturer`, `unit`, `notes`.
+Поля: `id`, `designation`, `name`, `manufacturer`, `unit`, `notes`, `createdAt`, `updatedAt`.
 
 Связи: `CatalogItem 1:N ItemSupplier`, `CatalogItem 1:N ProjectItem`; через `ItemSupplier` реализуется `CatalogItem N:M Organization`.
 
@@ -112,7 +112,7 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 ## 8. ProjectAssembly
 
-**Назначение:** простой справочник основных узлов/систем установки для указания назначения изделия, не полная структура КД.
+**Назначение:** условное верхнеуровневое функциональное разбиение установки для классификации комплектации, не полная структура КД. В UI используется термин «Раздел».
 
 Поля: `id`, `project -> Project`, `name`, `designation` (nullable), `notes`.
 
@@ -120,13 +120,17 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 Правило: узлы в будущем могут копироваться в производный проект.
 
-`TODO / Open Question`: уникальность и сортировка узлов, состав копируемых данных.
+Примеры разделов: вакуумная система, газовая система, рама, система охлаждения, пневматика, электрическая часть. Назначение раздела для `ProjectItem` необязательно.
+
+Внутри проекта очевидные дубли имени узла без учета регистра не допускаются; сложная нормализация названий не выполняется.
+
+`TODO / Open Question`: нужна ли жесткая уникальность имени на уровне БД, сортировка узлов и состав копируемых данных.
 
 ## 9. ProjectItem
 
 **Назначение:** потребность конкретного проекта в покупном изделии, не заказ.
 
-Поля: `id`, `project -> Project`, `catalogItem -> CatalogItem`, `projectAssembly -> ProjectAssembly` (nullable), `requiredQuantity`, `notes`.
+Поля: `id`, `project -> Project`, `catalogItem -> CatalogItem`, `projectAssembly -> ProjectAssembly` (nullable), `requiredQuantity`, `notes`, `createdAt`, `updatedAt`.
 
 Связи: `Project 1:N ProjectItem`; `CatalogItem 1:N ProjectItem`; необязательная `ProjectAssembly 1:N ProjectItem`; `ProjectItem 1:N PurchaseOrderLine`.
 
@@ -136,8 +140,12 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 - потребность делится между несколькими заказами/поставщиками;
 - `requiredQuantity` может быть дробным (decimal / `BigDecimal`);
 - отдельного поля единицы нет; `requiredQuantity` использует единицу связанного `CatalogItem`.
+- несколько строк с одним изделием в одном проекте допустимы; ограничение уникальности `project + catalogItem` отсутствует;
+- `requiredQuantity` автоматически не умножается на количество физических экземпляров `Project.quantity`.
+- В UI список потребностей называется «Комплектация»; порядковый номер строки вычисляется при отображении и не является полем модели.
+- Поиск/autocomplete каталога и создание новой позиции на основе существующей являются UI-операциями и не меняют связи модели.
 
-`TODO / Open Question`: дубликаты изделий в проекте, изменение потребности после заказа, учет собственного наличия.
+`TODO / Open Question`: будущая семантика `requiredQuantity` относительно `Project.quantity`, изменение потребности после заказа, учет собственного наличия.
 
 ## 10. PurchaseOrder
 

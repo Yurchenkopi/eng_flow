@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-catalog-items
+      author: engflow
+      changes:
+        - createTable:
+            tableName: catalog_items
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: designation, type: VARCHAR(255) }
+              - column: { name: name, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: manufacturer, type: VARCHAR(255) }
+              - column: { name: unit, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+        - createIndex:
+            tableName: catalog_items
+            indexName: idx_catalog_items_name
+            columns: [{ column: { name: name } }]
+        - createIndex:
+            tableName: catalog_items
+            indexName: idx_catalog_items_designation
+            columns: [{ column: { name: designation } }]
+        - createIndex:
+            tableName: catalog_items
+            indexName: idx_catalog_items_manufacturer
+            columns: [{ column: { name: manufacturer } }]

@@ -16,6 +16,7 @@ import ru.yurch.engflow.model.ProjectStatus;
 import ru.yurch.engflow.service.DuplicateProjectDesignationException;
 import ru.yurch.engflow.service.OrganizationService;
 import ru.yurch.engflow.service.ProjectService;
+import ru.yurch.engflow.service.ProjectItemService;
 
 @Controller
 @RequestMapping("/projects")
@@ -23,10 +24,13 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final OrganizationService organizationService;
+    private final ProjectItemService projectItemService;
 
-    public ProjectController(ProjectService projectService, OrganizationService organizationService) {
+    public ProjectController(ProjectService projectService, OrganizationService organizationService,
+                             ProjectItemService projectItemService) {
         this.projectService = projectService;
         this.organizationService = organizationService;
+        this.projectItemService = projectItemService;
     }
 
     @ModelAttribute
@@ -72,6 +76,9 @@ public class ProjectController {
     @GetMapping("/{id}")
     public String details(@PathVariable Long id, Model model) {
         model.addAttribute("project", projectService.findById(id));
+        var items = projectItemService.findByProject(id);
+        model.addAttribute("configurationCount", items.size());
+        model.addAttribute("configurationPreview", items.stream().limit(5).toList());
         return "projects/details";
     }
 

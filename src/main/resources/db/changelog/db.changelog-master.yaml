@@ -3,3 +3,9 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-organizations.yaml
   - include:
       file: db/changelog/changes/002-create-projects.yaml
+  - include:
+      file: db/changelog/changes/003-create-catalog-items.yaml
+  - include:
+      file: db/changelog/changes/004-create-project-assemblies.yaml
+  - include:
+      file: db/changelog/changes/005-create-project-items.yaml

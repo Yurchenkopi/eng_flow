@@ -7,6 +7,7 @@
         <div class="navbar-nav">
             <a class="nav-link" th:classappend="${activePage == 'home'} ? ' active'" th:href="@{/}">Главная</a>
             <a class="nav-link" th:classappend="${activePage == 'projects'} ? ' active'" th:href="@{/projects}">Проекты</a>
+            <a class="nav-link" th:classappend="${activePage == 'catalog-items'} ? ' active'" th:href="@{/catalog-items}">Изделия</a>
             <a class="nav-link" th:classappend="${activePage == 'organizations'} ? ' active'" th:href="@{/organizations}">Организации</a>
         </div>
     </div>
