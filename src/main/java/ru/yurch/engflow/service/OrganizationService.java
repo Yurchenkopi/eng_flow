@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yurch.engflow.model.Organization;
 import ru.yurch.engflow.repository.OrganizationRepository;
+import ru.yurch.engflow.model.OrganizationRole;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class OrganizationService {
     public List<Organization> findAll() {
         return organizationRepository.findAll();
     }
+    public List<Organization> findCustomers(){return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.CUSTOMER);}
 
     public Organization findById(Long id) {
         return organizationRepository.findById(id)
@@ -39,6 +41,7 @@ public class OrganizationService {
         organization.setShortName(values.getShortName());
         organization.setInn(values.getInn());
         organization.setNotes(values.getNotes());
+        organization.setRoles(values.getRoles());
         return organizationRepository.save(organization);
     }
 }

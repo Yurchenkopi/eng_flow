@@ -20,9 +20,12 @@ erDiagram
     PURCHASE_ORDER ||--|{ PURCHASE_ORDER_LINE : contains
     PROJECT_ITEM ||--o{ PURCHASE_ORDER_LINE : allocated_to
     PURCHASE_ORDER_LINE ||--o{ RECEIPT : received_in
+    PROJECT ||--o{ TRANSFER_ACT : documented_by
+    TRANSFER_ACT ||--|{ TRANSFER_ACT_ITEM : contains
+    PROJECT_ITEM ||--o{ TRANSFER_ACT_ITEM : transferred_as
 ```
 
-Диаграмма не вводит сущности ролей, единиц измерения, файлового хранилища, склада, счетов, актов, писем или учета времени.
+Диаграмма не вводит сущности ролей, единиц измерения, файлового хранилища, склада, счетов, писем или учета времени.
 
 ## 2. Project
 
@@ -36,7 +39,7 @@ erDiagram
 
 - `Organization 1:N Project`: организация является заказчиком нескольких проектов; у проекта один заказчик.
 - Самоссылка `Project 1:N Project`: исходный проект может быть основой нескольких новых; у нового проекта не более одного `basedOnProject`.
-- `Project 1:N ProjectImage`, `ProjectAssembly`, `ProjectItem`.
+- `Project 1:N ProjectImage`, `ProjectAssembly`, `ProjectItem`, `TransferAct`.
 
 Правила:
 
@@ -193,13 +196,48 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 `TODO / Open Question`: точные формулы для отмен, изменений заказа, перепоставок и будущего собственного наличия. Полноценная складская модель пока не проектируется.
 
-## 14. Намеренно не зафиксированные сущности
+## 14. TransferAct
+
+**Назначение:** документирует передачу выбранных позиций комплектации одного проекта в цех.
+
+Поля: `id`, `number`, `year`, `actDate`, `project -> Project`, `deliveredBy`, `receivedBy`, `notes`, `createdAt`.
+
+Связи: `Project 1:N TransferAct`; `TransferAct 1:N TransferActItem`.
+
+Правила: пользователь не вводит номер; сервис назначает его последовательно в пределах года и отображает как `N/YYYY`; пара `year + number` уникальна. Для выдачи номера используется отдельный технический годовой счетчик с транзакционной блокировкой, а не `max(number) + 1`. Первая версия предоставляет HTML-представление без PDF.
+
+`TODO / Open Question`: изменение и удаление актов; пропуски номеров после отката/аннулирования; стратегия первичного создания годового счетчика при нескольких экземплярах приложения; расширение акта на позиции производства, не связанные с `ProjectItem`.
+
+## 15. TransferActItem
+
+**Назначение:** количество конкретной проектной потребности, переданное по акту в указанную конечную сборку/место применения.
+
+Поля: `id`, `transferAct -> TransferAct`, `projectItem -> ProjectItem`, `destinationDesignation`, `shopNumber`, `quantity`, `notes`.
+
+Связи: `TransferAct 1:N TransferActItem`; `ProjectItem 1:N TransferActItem`. Одна `ProjectItem` может встречаться в одном акте несколько раз.
+
+Правила:
+
+- `quantity` — положительное дробное число (`BigDecimal`);
+- обозначение и наименование изделия не дублируются и читаются по цепочке `TransferActItem -> ProjectItem -> CatalogItem`;
+- `transferredQuantity` для `ProjectItem` вычисляется как сумма `quantity` всех связанных `TransferActItem` и отдельно не хранится;
+- передача сверх `ProjectItem.requiredQuantity` в первой версии запрещена валидацией;
+- `totalSameCatalogItem` вычисляется для отображения как сумма количества того же `CatalogItem` внутри текущего акта и не хранится.
+
+`TODO / Open Question`: допустимые сценарии осознанной сверхпередачи; редактирование строк ранее созданного акта; влияние аннулированных актов после появления жизненного цикла документов.
+
+## 16. Производные показатели передачи
+
+- Передано по потребности: сумма `TransferActItem.quantity` для конкретного `ProjectItem` во всех актах.
+- Остаток к передаче: `ProjectItem.requiredQuantity - transferredQuantity`.
+- «Всего» в строке акта: сумма `TransferActItem.quantity` по одинаковому `CatalogItem` в пределах одного `TransferAct`.
+
+## 17. Намеренно не зафиксированные сущности
 
 Поля и связи следующих областей пока не согласованы, поэтому они не включены в ER-диаграмму:
 
 - склад и распределение собственного наличия (возможное направление `WarehouseAllocation`);
 - счета (`Invoice`);
-- акты и их позиции (`TransferAct`, `TransferActItem`);
 - официальные письма (`OfficialLetter`);
 - учет времени (возможное направление `WorkLog`, только после анализа `hours_meter`);
 - пользователи и роли доступа.

@@ -14,7 +14,7 @@
             <table class="table table-sm app-table mb-0 align-middle">
                 <thead><tr><th>Обозначение</th><th>Наименование</th><th>Модификация</th><th>Заказчик</th><th>Статус</th><th class="text-end">Кол-во</th><th>Завершен</th><th></th></tr></thead>
                 <tbody>
-                <tr th:each="project : ${projects}">
+                <tr class="clickable-row" th:each="project : ${projects}" th:attr="data-href=@{/projects/{id}(id=${project.id})}">
                     <td class="text-nowrap"><a class="fw-semibold" th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.designation}"></a></td>
                     <td th:text="${project.name}"></td>
                     <td th:text="${project.modificationName ?: '—'}"></td>

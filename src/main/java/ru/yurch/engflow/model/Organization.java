@@ -6,8 +6,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "organizations")
@@ -32,6 +40,12 @@ public class Organization {
 
     @Column(name = "notes", columnDefinition = "text")
     private String notes;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "organization_roles", joinColumns = @JoinColumn(name = "organization_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 30)
+    private Set<OrganizationRole> roles = new HashSet<>();
 
     public Long getId() {
         return id;
@@ -72,4 +86,7 @@ public class Organization {
     public void setNotes(String notes) {
         this.notes = notes;
     }
+
+    public Set<OrganizationRole> getRoles() { return roles; }
+    public void setRoles(Set<OrganizationRole> roles) { this.roles = roles == null ? new HashSet<>() : roles; }
 }

@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-create-transfer-acts
+      author: engflow
+      changes:
+        - createTable:
+            tableName: transfer_act_number_sequences
+            columns:
+              - column: { name: sequence_year, type: INTEGER, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: next_number, type: INTEGER, constraints: { nullable: false } }
+        - createTable:
+            tableName: transfer_acts
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: number, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: act_year, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: act_date, type: DATE, constraints: { nullable: false } }
+              - column: { name: project_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: delivered_by, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: received_by, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, constraints: { nullable: false } }
+        - addUniqueConstraint: { tableName: transfer_acts, columnNames: 'act_year, number', constraintName: uk_transfer_acts_year_number }
+        - addForeignKeyConstraint: { baseTableName: transfer_acts, baseColumnNames: project_id, referencedTableName: projects, referencedColumnNames: id, constraintName: fk_transfer_acts_project }
+        - createIndex:
+            tableName: transfer_acts
+            indexName: idx_transfer_acts_project_id
+            columns: [{ column: { name: project_id } }]
+        - createTable:
+            tableName: transfer_act_items
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: transfer_act_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: project_item_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: destination_designation, type: VARCHAR(255) }
+              - column: { name: shop_number, type: VARCHAR(100) }
+              - column: { name: quantity, type: 'NUMERIC(19,4)', constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+        - sql: { sql: 'ALTER TABLE transfer_act_items ADD CONSTRAINT ck_transfer_act_items_quantity_positive CHECK (quantity > 0)' }
+        - addForeignKeyConstraint: { baseTableName: transfer_act_items, baseColumnNames: transfer_act_id, referencedTableName: transfer_acts, referencedColumnNames: id, constraintName: fk_transfer_act_items_act, onDelete: CASCADE }
+        - addForeignKeyConstraint: { baseTableName: transfer_act_items, baseColumnNames: project_item_id, referencedTableName: project_items, referencedColumnNames: id, constraintName: fk_transfer_act_items_project_item }
+        - createIndex:
+            tableName: transfer_act_items
+            indexName: idx_transfer_act_items_act_id
+            columns: [{ column: { name: transfer_act_id } }]
+        - createIndex:
+            tableName: transfer_act_items
+            indexName: idx_transfer_act_items_project_item_id
+            columns: [{ column: { name: project_item_id } }]

@@ -36,7 +36,7 @@ public class ProjectController {
     @ModelAttribute
     public void formReferenceData(Model model) {
         model.addAttribute("statuses", ProjectStatus.values());
-        model.addAttribute("organizations", organizationService.findAll());
+        model.addAttribute("organizations", organizationService.findCustomers());
         model.addAttribute("availableBaseProjects", projectService.findAll());
     }
 
