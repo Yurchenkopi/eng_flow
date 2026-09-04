@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Проекты')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navigation('projects')}"></nav>
-<main class="container-fluid px-4 py-4">
+<main class="app-container">
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div class="page-heading"><h1>Проекты</h1><p>Конструкции и установки EngFlow</p></div>
         <a class="btn btn-primary" th:href="@{/projects/new}">Новый проект</a>
@@ -14,7 +14,7 @@
             <table class="table table-sm app-table mb-0 align-middle">
                 <thead><tr><th>Обозначение</th><th>Наименование</th><th>Модификация</th><th>Заказчик</th><th>Статус</th><th class="text-end">Кол-во</th><th>Завершен</th><th></th></tr></thead>
                 <tbody>
-                <tr class="clickable-row" th:each="project : ${projects}" th:attr="data-href=@{/projects/{id}(id=${project.id})}">
+                <tr class="data-row-clickable" th:each="project : ${projects}" th:attr="data-href=@{/projects/{id}(id=${project.id})}">
                     <td class="text-nowrap"><a class="fw-semibold" th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.designation}"></a></td>
                     <td th:text="${project.name}"></td>
                     <td th:text="${project.modificationName ?: '—'}"></td>

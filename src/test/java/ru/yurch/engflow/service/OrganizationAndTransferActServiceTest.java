@@ -32,11 +32,21 @@ class OrganizationAndTransferActServiceTest{
         assertThat(first.getNumber()).isEqualTo(1);assertThat(second.getNumber()).isEqualTo(2);assertThat(nextYear.getNumber()).isEqualTo(1);
     }
 
-    @Test void createsLinesCalculatesTransferredAndTotalsByCatalogItem(){
+    @Test void draftDoesNotCountUntilFinalizedAndTotalsAreCalculated(){
         ProjectItem item=projectItem("ИТ802.00.00.000","Труба",new BigDecimal("10"));TransferAct act=baseAct(item,LocalDate.of(2093,1,1));
         act.getItems().add(line(item,"2"));act.getItems().add(line(item,"3"));TransferAct saved=acts.create(act);TransferAct loaded=acts.findById(saved.getId());
-        assertThat(acts.transferred(item.getId())).isEqualByComparingTo("5");assertThat(loaded.getItems()).hasSize(2).allSatisfy(line->assertThat(line.getTotalSameCatalogItem()).isEqualByComparingTo("5"));
+        assertThat(saved.isTransferred()).isFalse();assertThat(acts.transferred(item.getId())).isEqualByComparingTo("0");assertThat(acts.remaining(item)).isEqualByComparingTo("10");
+        assertThat(loaded.getItems()).hasSize(2).allSatisfy(line->assertThat(line.getTotalSameCatalogItem()).isEqualByComparingTo("5"));
+        acts.finalizeAct(saved.getId());assertThat(acts.transferred(item.getId())).isEqualByComparingTo("5");assertThat(acts.remaining(item)).isEqualByComparingTo("5");
     }
+
+    @Test void partiallyAndFullyTransferredItemsHaveCorrectRemaining(){ProjectItem item=projectItem("ИТ804.00.00.000","Муфта",new BigDecimal("5"));TransferAct first=acts.create(act(item,LocalDate.of(2095,1,1),new BigDecimal("3")));acts.finalizeAct(first.getId());assertThat(acts.remaining(item)).isEqualByComparingTo("2");TransferAct second=acts.create(act(item,LocalDate.of(2095,1,2),new BigDecimal("2")));acts.finalizeAct(second.getId());assertThat(acts.remaining(item)).isZero();assertThatThrownBy(()->acts.prepare(item.getProject().getId(),List.of(item.getId()))).hasMessageContaining("уже передано");}
+
+    @Test void emptyActCannotFinalizeAndDraftItemCanBeRemoved(){ProjectItem item=projectItem("ИТ805.00.00.000","Штуцер",new BigDecimal("2"));TransferAct saved=acts.create(act(item,LocalDate.of(2096,1,1),new BigDecimal("1")));Long lineId=acts.findById(saved.getId()).getItems().getFirst().getId();acts.removeItem(saved.getId(),lineId);assertThat(acts.findById(saved.getId()).getItems()).isEmpty();assertThatThrownBy(()->acts.finalizeAct(saved.getId())).hasMessageContaining("Пустой акт");}
+
+    @Test void transferredActIsImmutable(){ProjectItem item=projectItem("ИТ806.00.00.000","Фланец",new BigDecimal("2"));TransferAct saved=acts.create(act(item,LocalDate.of(2097,1,1),new BigDecimal("1")));Long lineId=acts.findById(saved.getId()).getItems().getFirst().getId();acts.finalizeAct(saved.getId());assertThatThrownBy(()->acts.update(saved.getId(),saved)).isInstanceOf(IllegalStateException.class);assertThatThrownBy(()->acts.delete(saved.getId())).isInstanceOf(IllegalStateException.class);assertThatThrownBy(()->acts.removeItem(saved.getId(),lineId)).isInstanceOf(IllegalStateException.class);}
+
+    @Test void draftDoesNotReduceAvailableQuantity(){ProjectItem item=projectItem("ИТ807.00.00.000","Кольцо",new BigDecimal("4"));acts.create(act(item,LocalDate.of(2098,1,1),new BigDecimal("3")));assertThat(acts.remaining(item)).isEqualByComparingTo("4");assertThat(acts.prepare(item.getProject().getId(),List.of(item.getId())).getItems().getFirst().getQuantity()).isEqualByComparingTo("4");}
 
     @Test void rejectsTransferAboveRequiredQuantity(){
         ProjectItem item=projectItem("ИТ803.00.00.000","Датчик",new BigDecimal("2"));

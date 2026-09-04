@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Главная')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navigation('home')}"></nav>
-<main class="container-fluid px-4 py-4">
+<main class="app-container">
     <div class="page-heading mb-4">
         <h1>Обзор</h1>
         <p>Текущее состояние инженерных проектов</p>
@@ -33,7 +33,7 @@
             <table class="table table-sm app-table mb-0">
                 <thead><tr><th>Обозначение</th><th>Наименование</th><th>Статус</th><th>Заказчик</th></tr></thead>
                 <tbody>
-                <tr th:each="project : ${recentProjects}">
+                <tr class="data-row-clickable" th:each="project : ${recentProjects}" th:attr="data-href=@{/projects/{id}(id=${project.id})}">
                     <td><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.designation}"></a></td>
                     <td th:text="${project.name}"></td>
                     <td th:text="${project.status.displayName}"></td>
@@ -45,6 +45,6 @@
         </div>
     </section>
 </main>
-<script th:replace="~{fragments/layout :: scripts}"></script>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>

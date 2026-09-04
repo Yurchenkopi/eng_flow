@@ -19,6 +19,7 @@ public class TransferAct {
     @NotBlank(message="Укажите, кто сдал") @Column(name="delivered_by",nullable=false) private String deliveredBy;
     @NotBlank(message="Укажите, кто принял") @Column(name="received_by",nullable=false) private String receivedBy;
     @Column(columnDefinition="text") private String notes;
+    @Column(nullable=false) private boolean transferred;
     @Column(name="created_at",nullable=false,updatable=false) private Instant createdAt;
     @OneToMany(mappedBy="transferAct",cascade=CascadeType.ALL,orphanRemoval=true) private List<@Valid TransferActItem> items=new ArrayList<>();
     @PrePersist void onCreate(){createdAt=Instant.now();}
@@ -31,6 +32,7 @@ public class TransferAct {
     public String getDeliveredBy(){return deliveredBy;} public void setDeliveredBy(String deliveredBy){this.deliveredBy=deliveredBy;}
     public String getReceivedBy(){return receivedBy;} public void setReceivedBy(String receivedBy){this.receivedBy=receivedBy;}
     public String getNotes(){return notes;} public void setNotes(String notes){this.notes=notes;}
+    public boolean isTransferred(){return transferred;} public void setTransferred(boolean transferred){this.transferred=transferred;}
     public Instant getCreatedAt(){return createdAt;}
     public List<TransferActItem> getItems(){return items;} public void setItems(List<TransferActItem> items){this.items=items==null?new ArrayList<>():items;}
 }

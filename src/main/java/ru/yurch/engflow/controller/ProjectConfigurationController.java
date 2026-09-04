@@ -16,8 +16,9 @@ public class ProjectConfigurationController {
             @RequestParam(required = false) Long assemblyId, @RequestParam(defaultValue = "name") String sort,
             @RequestParam(defaultValue = "asc") String direction, Model model) {
         model.addAttribute("project", projectService.findById(projectId)); model.addAttribute("assemblies", assemblyService.findByProject(projectId));
-        model.addAttribute("items", itemService.search(projectId, search, assemblyId, sort, direction));
-        model.addAttribute("transferred",transferActs.transferredByProject(projectId));
+        var items=itemService.search(projectId, search, assemblyId, sort, direction);model.addAttribute("items",items);
+        var transferred=transferActs.transferredByProject(projectId);model.addAttribute("transferred",transferred);
+        model.addAttribute("remaining",items.stream().collect(java.util.stream.Collectors.toMap(ru.yurch.engflow.model.ProjectItem::getId,item->item.getRequiredQuantity().subtract(transferred.getOrDefault(item.getId(),java.math.BigDecimal.ZERO)).max(java.math.BigDecimal.ZERO))));
         model.addAttribute("search", search); model.addAttribute("assemblyId", assemblyId); model.addAttribute("sort", sort); model.addAttribute("direction", direction);
         return "project-items/configuration";
     }

@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-transfer-act-state
+      author: engflow
+      changes:
+        - addColumn:
+            tableName: transfer_acts
+            columns:
+              - column:
+                  name: transferred
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

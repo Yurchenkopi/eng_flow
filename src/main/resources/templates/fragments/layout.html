@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <body>
-<nav th:fragment="navigation(activePage)" class="navbar navbar-expand-lg app-navbar">
-    <div class="container-fluid px-4">
+<nav th:fragment="navigation(activePage)" class="navbar navbar-expand-lg app-header">
+    <div class="app-header-inner">
         <a class="navbar-brand fw-semibold" th:href="@{/}">EngFlow</a>
         <div class="navbar-nav">
             <a class="nav-link" th:classappend="${activePage == 'home'} ? ' active'" th:href="@{/}">Главная</a>
@@ -22,10 +22,11 @@
     <link th:href="@{/css/app.css}" rel="stylesheet">
 </th:block>
 
-<div th:fragment="messages" class="mb-3" th:if="${successMessage}">
-    <div class="alert alert-success py-2 mb-0" role="alert" th:text="${successMessage}"></div>
+<div th:fragment="messages" class="flash-stack" th:if="${successMessage != null or errorMessage != null}">
+    <div class="flash-message flash-success" th:if="${successMessage}" role="status" th:text="${successMessage}"></div>
+    <div class="flash-message flash-error" th:if="${errorMessage}" role="alert" th:text="${errorMessage}"></div>
 </div>
 
-<th:block th:fragment="scripts"><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script><script>document.addEventListener('click',event=>{const row=event.target.closest('.clickable-row');if(row&&!event.target.closest('a,button,input,select,textarea,form'))window.location.href=row.dataset.href;});</script></th:block>
+<th:block th:fragment="scripts"><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script><script>document.addEventListener('click',event=>{const row=event.target.closest('.data-row-clickable,[data-href].clickable-row');if(row&&row.dataset.href&&!event.target.closest('a,button,input,select,textarea,label,[data-no-row-click]'))window.location.href=row.dataset.href;});</script></th:block>
 </body>
 </html>
