@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-add-allocation-timestamps-and-item-suppliers
+      author: engflow
+      changes:
+        - addColumn:
+            tableName: project_item_allocations
+            columns:
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - createTable:
+            tableName: item_suppliers
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: catalog_item_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: supplier_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: supplier_article, type: VARCHAR(255) }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - addForeignKeyConstraint: { baseTableName: item_suppliers, baseColumnNames: catalog_item_id, referencedTableName: catalog_items, referencedColumnNames: id, constraintName: fk_item_suppliers_catalog_item, onDelete: CASCADE }
+        - addForeignKeyConstraint: { baseTableName: item_suppliers, baseColumnNames: supplier_id, referencedTableName: organizations, referencedColumnNames: id, constraintName: fk_item_suppliers_supplier }
+        - addUniqueConstraint: { tableName: item_suppliers, columnNames: 'catalog_item_id, supplier_id', constraintName: uk_item_suppliers_catalog_supplier }
+        - createIndex: { tableName: item_suppliers, indexName: idx_item_suppliers_catalog_item_id, columns: [{ column: { name: catalog_item_id } }] }
+        - createIndex: { tableName: item_suppliers, indexName: idx_item_suppliers_supplier_id, columns: [{ column: { name: supplier_id } }] }

@@ -12,7 +12,8 @@ erDiagram
     PROJECT ||--o{ PROJECT_IMAGE : has
     PROJECT ||--o{ PROJECT_ASSEMBLY : contains
     PROJECT ||--o{ PROJECT_ITEM : requires
-    PROJECT_ASSEMBLY o|--o{ PROJECT_ITEM : groups
+    PROJECT_ITEM ||--|{ PROJECT_ITEM_ALLOCATION : distributed_as
+    PROJECT_ASSEMBLY o|--o{ PROJECT_ITEM_ALLOCATION : groups
     CATALOG_ITEM ||--o{ PROJECT_ITEM : requested_as
     CATALOG_ITEM ||--o{ ITEM_SUPPLIER : offered_by
     ORGANIZATION ||--o{ ITEM_SUPPLIER : supplier
@@ -22,7 +23,7 @@ erDiagram
     PURCHASE_ORDER_LINE ||--o{ RECEIPT : received_in
     PROJECT ||--o{ TRANSFER_ACT : documented_by
     TRANSFER_ACT ||--|{ TRANSFER_ACT_ITEM : contains
-    PROJECT_ITEM ||--o{ TRANSFER_ACT_ITEM : transferred_as
+    PROJECT_ITEM_ALLOCATION ||--o{ TRANSFER_ACT_ITEM : transferred_as
 ```
 
 Диаграмма не вводит сущности ролей, единиц измерения, файлового хранилища, склада, счетов, писем или учета времени.
@@ -101,9 +102,9 @@ erDiagram
 
 **Назначение:** возможность приобретения изделия у конкретного поставщика.
 
-Поля: `id`, `catalogItem -> CatalogItem`, `supplier -> Organization`, `supplierArticle`, `notes`.
+Поля: `id`, `catalogItem -> CatalogItem`, `supplier -> Organization`, `supplierArticle` (nullable), `notes` (nullable), `createdAt`, `updatedAt`.
 
-Связи: `CatalogItem 1:N ItemSupplier`; `Organization 1:N ItemSupplier`; вместе — связь `CatalogItem N:M Organization` с атрибутами.
+Связи: `CatalogItem 1:N ItemSupplier`; `Organization 1:N ItemSupplier`; вместе — связь `CatalogItem N:M Organization` с атрибутами. Пара `catalogItem + supplier` уникальна; `supplier` обязан иметь роль `SUPPLIER`.
 
 Правила: организация выступает поставщиком; будущая рекомендация может опираться на исторически приобретенное количество и не ограничивает ручной выбор.
 
@@ -133,22 +134,32 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** потребность конкретного проекта в покупном изделии, не заказ.
 
-Поля: `id`, `project -> Project`, `catalogItem -> CatalogItem`, `projectAssembly -> ProjectAssembly` (nullable), `requiredQuantity`, `notes`, `createdAt`, `updatedAt`.
+Поля: `id`, `project -> Project`, `catalogItem -> CatalogItem`, `notes`, `createdAt`, `updatedAt`. `requiredQuantity` — вычисляемая сумма allocations, не отдельная колонка.
 
-Связи: `Project 1:N ProjectItem`; `CatalogItem 1:N ProjectItem`; необязательная `ProjectAssembly 1:N ProjectItem`; `ProjectItem 1:N PurchaseOrderLine`.
+Связи: `Project 1:N ProjectItem`; `CatalogItem 1:N ProjectItem`; `ProjectItem 1:N ProjectItemAllocation`; `ProjectItem 1:N PurchaseOrderLine`.
 
 Правила:
 
 - поставщик не является обязательным свойством;
 - потребность делится между несколькими заказами/поставщиками;
-- `requiredQuantity` может быть дробным (decimal / `BigDecimal`);
+- в одном проекте пара `project + catalogItem` уникальна;
+- `requiredQuantity` вычисляется как сумма дробных quantities allocations;
 - отдельного поля единицы нет; `requiredQuantity` использует единицу связанного `CatalogItem`.
-- несколько строк с одним изделием в одном проекте допустимы; ограничение уникальности `project + catalogItem` отсутствует;
 - `requiredQuantity` автоматически не умножается на количество физических экземпляров `Project.quantity`.
 - В UI список потребностей называется «Комплектация»; порядковый номер строки вычисляется при отображении и не является полем модели.
 - Поиск/autocomplete каталога и создание новой позиции на основе существующей являются UI-операциями и не меняют связи модели.
 
 `TODO / Open Question`: будущая семантика `requiredQuantity` относительно `Project.quantity`, изменение потребности после заказа, учет собственного наличия.
+
+### 9.1. ProjectItemAllocation
+
+**Назначение:** распределяет количество агрегированной позиции комплектации по разделу проекта.
+
+Поля: `id`, `projectItem -> ProjectItem`, `projectAssembly -> ProjectAssembly` (nullable), `quantity`, `notes`, `createdAt`, `updatedAt`.
+
+Связи: `ProjectItem 1:N ProjectItemAllocation`; необязательная `ProjectAssembly 1:N ProjectItemAllocation`; `ProjectItemAllocation 1:N TransferActItem`.
+
+Правила: quantity — положительный `BigDecimal` с шагом единицы `CatalogItem`; отсутствие раздела означает «Без раздела»; один раздел (включая «Без раздела») встречается в позиции не более одного раза; общая потребность родителя равна сумме allocations.
 
 ## 10. PurchaseOrder
 
@@ -212,14 +223,14 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** количество конкретной проектной потребности, переданное по акту в указанную конечную сборку/место применения.
 
-Поля: `id`, `transferAct -> TransferAct`, `projectItem -> ProjectItem`, `destinationDesignation`, `shopNumber`, `quantity`, `notes`.
+Поля: `id`, `transferAct -> TransferAct`, `projectItemAllocation -> ProjectItemAllocation`, `destinationDesignation`, `shopNumber`, `quantity`, `notes`.
 
-Связи: `TransferAct 1:N TransferActItem`; `ProjectItem 1:N TransferActItem`. Одна `ProjectItem` может встречаться в одном акте несколько раз.
+Связи: `TransferAct 1:N TransferActItem`; `ProjectItemAllocation 1:N TransferActItem`. Allocations одного CatalogItem могут встречаться в акте несколькими строками.
 
 Правила:
 
 - `quantity` — положительное дробное число (`BigDecimal`);
-- обозначение и наименование изделия не дублируются и читаются по цепочке `TransferActItem -> ProjectItem -> CatalogItem`;
+- обозначение и наименование изделия не дублируются и читаются по цепочке `TransferActItem -> ProjectItemAllocation -> ProjectItem -> CatalogItem`;
 - `transferredQuantity` для `ProjectItem` вычисляется как сумма `quantity` связанных `TransferActItem` только из подтвержденных актов и отдельно не хранится; черновики на расчет не влияют;
 - передача сверх `ProjectItem.requiredQuantity` в первой версии запрещена валидацией;
 - `totalSameCatalogItem` вычисляется для отображения как сумма количества того же `CatalogItem` внутри текущего акта и не хранится.

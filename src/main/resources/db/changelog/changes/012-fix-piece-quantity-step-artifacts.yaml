@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-fix-piece-quantity-step-artifacts
+      author: engflow
+      comment: Correct only tiny positive fractions produced by the former min=0.0001 HTML step lattice for piece quantities.
+      changes:
+        - sql:
+            sql: >-
+              UPDATE project_item_allocations allocation SET quantity = FLOOR(allocation.quantity)
+              WHERE FLOOR(allocation.quantity) >= 1
+                AND allocation.quantity > FLOOR(allocation.quantity)
+                AND allocation.quantity - FLOOR(allocation.quantity) <= 0.0009
+                AND EXISTS (SELECT 1 FROM project_items item JOIN catalog_items catalog ON catalog.id = item.catalog_item_id WHERE item.id = allocation.project_item_id AND LOWER(TRIM(catalog.unit)) = 'шт.')
+        - sql:
+            sql: >-
+              UPDATE transfer_act_items act_item SET quantity = FLOOR(act_item.quantity)
+              WHERE FLOOR(act_item.quantity) >= 1
+                AND act_item.quantity > FLOOR(act_item.quantity)
+                AND act_item.quantity - FLOOR(act_item.quantity) <= 0.0009
+                AND EXISTS (SELECT 1 FROM project_item_allocations allocation JOIN project_items item ON item.id = allocation.project_item_id JOIN catalog_items catalog ON catalog.id = item.catalog_item_id WHERE allocation.id = act_item.project_item_allocation_id AND LOWER(TRIM(catalog.unit)) = 'шт.')

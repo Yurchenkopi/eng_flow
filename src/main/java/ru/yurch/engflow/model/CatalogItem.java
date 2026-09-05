@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.LinkedHashSet; import java.util.Set;
 
 @Entity
 @Table(name = "catalog_items")
@@ -19,6 +21,7 @@ public class CatalogItem {
     @Column(columnDefinition = "text") private String notes;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+    @OneToMany(mappedBy="catalogItem") @OrderBy("id ASC") private Set<ItemSupplier> itemSuppliers=new LinkedHashSet<>();
 
     @PrePersist void onCreate() { Instant now = Instant.now(); createdAt = now; updatedAt = now; }
     @PreUpdate void onUpdate() { updatedAt = Instant.now(); }
@@ -29,4 +32,6 @@ public class CatalogItem {
     public String getUnit() { return unit; } public void setUnit(String unit) { this.unit = unit; }
     public String getNotes() { return notes; } public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }
+    public Set<ItemSupplier> getItemSuppliers(){return itemSuppliers;}
+    @Transient public BigDecimal getQuantityStep() { String value=unit==null?"":unit.trim().toLowerCase(java.util.Locale.ROOT); return "шт.".equals(value)?BigDecimal.ONE:("кг".equals(value)||"м".equals(value)?new BigDecimal("0.1"):new BigDecimal("0.0001")); }
 }

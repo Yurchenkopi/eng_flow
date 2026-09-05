@@ -15,3 +15,11 @@ databaseChangeLog:
       file: db/changelog/changes/007-create-transfer-acts.yaml
   - include:
       file: db/changelog/changes/008-add-transfer-act-state.yaml
+  - include:
+      file: db/changelog/changes/009-aggregate-project-items.yaml
+  - include:
+      file: db/changelog/changes/010-merge-duplicate-allocations.yaml
+  - include:
+      file: db/changelog/changes/011-add-allocation-timestamps-and-item-suppliers.yaml
+  - include:
+      file: db/changelog/changes/012-fix-piece-quantity-step-artifacts.yaml

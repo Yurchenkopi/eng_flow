@@ -51,6 +51,7 @@ Typical package names include `ru.yurch.engflow.controller`, `ru.yurch.engflow.s
 
 - Inspect the repository before making changes; its structure may evolve after this file is created.
 - Do not assume a language, framework, package manager, or architecture without evidence in the repository or explicit user direction.
+- Do not commit or push changes unless explicitly requested.
 - Keep changes focused on the requested task and preserve unrelated user work.
 - Prefer small, reviewable edits and follow conventions established by existing files.
 - Never add dependencies, generated artifacts, or configuration files unless they are required by the task.

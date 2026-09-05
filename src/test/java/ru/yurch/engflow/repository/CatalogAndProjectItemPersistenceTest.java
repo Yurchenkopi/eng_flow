@@ -24,17 +24,18 @@ class CatalogAndProjectItemPersistenceTest {
         project = projects.saveAndFlush(project);
         ProjectAssembly assembly = new ProjectAssembly(); assembly.setProject(project); assembly.setName("Газовая система");
         assembly = assemblies.saveAndFlush(assembly);
-        ProjectItem linked = item(project, catalogItem, new BigDecimal("1.2500")); linked.setProjectAssembly(assembly);
+        ProjectItem linked = item(project, catalogItem, new BigDecimal("1.2500")); linked.getAllocations().getFirst().setProjectAssembly(assembly);
+        ProjectItemAllocation withoutAssembly = allocation(new BigDecimal("0.5000")); withoutAssembly.setProjectItem(linked); linked.getAllocations().add(withoutAssembly);
         linked = projectItems.saveAndFlush(linked);
-        ProjectItem withoutAssembly = projectItems.saveAndFlush(item(project, catalogItem, new BigDecimal("0.5000")));
 
-        assertThat(linked.getRequiredQuantity()).isEqualByComparingTo("1.2500");
+        assertThat(linked.getRequiredQuantity()).isEqualByComparingTo("1.7500");
         assertThat(linked.getProject().getId()).isEqualTo(project.getId());
         assertThat(linked.getCatalogItem().getId()).isEqualTo(catalogItem.getId());
-        assertThat(withoutAssembly.getProjectAssembly()).isNull();
+        assertThat(linked.getAllocations().get(1).getProjectAssembly()).isNull();
     }
 
     private ProjectItem item(Project project, CatalogItem catalogItem, BigDecimal quantity) {
-        ProjectItem item = new ProjectItem(); item.setProject(project); item.setCatalogItem(catalogItem); item.setRequiredQuantity(quantity); return item;
+        ProjectItem item = new ProjectItem(); item.setProject(project); item.setCatalogItem(catalogItem); ProjectItemAllocation allocation=allocation(quantity); allocation.setProjectItem(item); item.getAllocations().add(allocation); return item;
     }
+    private ProjectItemAllocation allocation(BigDecimal quantity){ProjectItemAllocation value=new ProjectItemAllocation();value.setQuantity(quantity);return value;}
 }

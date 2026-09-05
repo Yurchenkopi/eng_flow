@@ -18,7 +18,8 @@ public class ProjectConfigurationController {
         model.addAttribute("project", projectService.findById(projectId)); model.addAttribute("assemblies", assemblyService.findByProject(projectId));
         var items=itemService.search(projectId, search, assemblyId, sort, direction);model.addAttribute("items",items);
         var transferred=transferActs.transferredByProject(projectId);model.addAttribute("transferred",transferred);
-        model.addAttribute("remaining",items.stream().collect(java.util.stream.Collectors.toMap(ru.yurch.engflow.model.ProjectItem::getId,item->item.getRequiredQuantity().subtract(transferred.getOrDefault(item.getId(),java.math.BigDecimal.ZERO)).max(java.math.BigDecimal.ZERO))));
+        model.addAttribute("parentTransferred",items.stream().collect(java.util.stream.Collectors.toMap(ru.yurch.engflow.model.ProjectItem::getId,item->item.getAllocations().stream().map(allocation->transferred.getOrDefault(allocation.getId(),java.math.BigDecimal.ZERO)).reduce(java.math.BigDecimal.ZERO,java.math.BigDecimal::add))));
+        model.addAttribute("remaining",items.stream().flatMap(item->item.getAllocations().stream()).collect(java.util.stream.Collectors.toMap(ru.yurch.engflow.model.ProjectItemAllocation::getId,allocation->allocation.getQuantity().subtract(transferred.getOrDefault(allocation.getId(),java.math.BigDecimal.ZERO)).max(java.math.BigDecimal.ZERO))));
         model.addAttribute("search", search); model.addAttribute("assemblyId", assemblyId); model.addAttribute("sort", sort); model.addAttribute("direction", direction);
         return "project-items/configuration";
     }

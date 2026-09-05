@@ -79,6 +79,7 @@ public class ProjectController {
         var items = projectItemService.findByProject(id);
         model.addAttribute("configurationCount", items.size());
         model.addAttribute("configurationPreview", items.stream().limit(5).toList());
+        model.addAttribute("configurationUpdatedAt",projectItemService.lastConfigurationChange(id));
         return "projects/details";
     }
 

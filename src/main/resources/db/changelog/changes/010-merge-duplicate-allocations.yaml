@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-merge-duplicate-allocations
+      author: engflow
+      changes:
+        - sql:
+            sql: >-
+              UPDATE transfer_act_items tai
+              SET project_item_allocation_id = (
+                SELECT MIN(same_allocation.id)
+                FROM project_item_allocations current_allocation
+                JOIN project_item_allocations same_allocation
+                  ON same_allocation.project_item_id = current_allocation.project_item_id
+                 AND (same_allocation.project_assembly_id = current_allocation.project_assembly_id
+                      OR (same_allocation.project_assembly_id IS NULL AND current_allocation.project_assembly_id IS NULL))
+                WHERE current_allocation.id = tai.project_item_allocation_id)
+        - sql:
+            sql: >-
+              UPDATE project_item_allocations allocation
+              SET quantity = (
+                SELECT SUM(same_allocation.quantity)
+                FROM project_item_allocations same_allocation
+                WHERE same_allocation.project_item_id = allocation.project_item_id
+                  AND (same_allocation.project_assembly_id = allocation.project_assembly_id
+                       OR (same_allocation.project_assembly_id IS NULL AND allocation.project_assembly_id IS NULL)))
+              WHERE allocation.id = (
+                SELECT MIN(first_allocation.id)
+                FROM project_item_allocations first_allocation
+                WHERE first_allocation.project_item_id = allocation.project_item_id
+                  AND (first_allocation.project_assembly_id = allocation.project_assembly_id
+                       OR (first_allocation.project_assembly_id IS NULL AND allocation.project_assembly_id IS NULL)))
+        - sql:
+            sql: >-
+              DELETE FROM project_item_allocations allocation
+              WHERE allocation.id <> (
+                SELECT MIN(first_allocation.id)
+                FROM project_item_allocations first_allocation
+                WHERE first_allocation.project_item_id = allocation.project_item_id
+                  AND (first_allocation.project_assembly_id = allocation.project_assembly_id
+                       OR (first_allocation.project_assembly_id IS NULL AND allocation.project_assembly_id IS NULL)))
+        - addUniqueConstraint:
+            tableName: project_item_allocations
+            columnNames: project_item_id, project_assembly_id
+            constraintName: uk_project_item_allocations_item_assembly
+  - changeSet:
+      id: 010-unique-allocation-without-assembly
+      author: engflow
+      dbms: postgresql
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX uk_project_item_allocations_without_assembly ON project_item_allocations (project_item_id) WHERE project_assembly_id IS NULL

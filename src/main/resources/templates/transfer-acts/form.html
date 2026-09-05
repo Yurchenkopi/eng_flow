@@ -19,9 +19,9 @@
         <div class="form-section"><h2>Позиции</h2><div class="table-responsive"><table class="table data-table act-edit-table">
             <thead><tr><th>Изделие</th><th>Доступно</th><th>Количество</th><th>Куда входит</th><th>Цеховой номер</th><th>Примечание</th></tr></thead>
             <tbody><tr th:each="line,stat:*{items}">
-                <td><input type="hidden" th:field="*{items[__${stat.index}__].projectItem.id}"><strong th:text="${line.projectItem.catalogItem.designation?:'—'}"></strong><small th:text="${line.projectItem.catalogItem.name}"></small></td>
-                <td><span th:text="${available[line.projectItem.id].stripTrailingZeros().toPlainString()+' '+line.projectItem.catalogItem.unit}"></span><small class="cell-meta" th:text="${'Требуется: '+line.projectItem.requiredQuantity.stripTrailingZeros().toPlainString()}"></small></td>
-                <td><input class="form-control form-control-sm" type="number" min="0.0001" step="0.0001" th:attr="max=${available[line.projectItem.id]}" th:field="*{items[__${stat.index}__].quantity}"></td>
+                <td><input type="hidden" th:field="*{items[__${stat.index}__].projectItemAllocation.id}"><strong th:text="${line.projectItemAllocation.projectItem.catalogItem.designation?:'—'}"></strong><small th:text="${line.projectItemAllocation.projectItem.catalogItem.name}"></small><small th:text="${line.projectItemAllocation.projectAssembly!=null?line.projectItemAllocation.projectAssembly.name:'Без раздела'}"></small></td>
+                <td><span th:text="${available[line.projectItemAllocation.id].stripTrailingZeros().toPlainString()+' '+line.projectItemAllocation.projectItem.catalogItem.unit}"></span><small class="cell-meta" th:text="${'В распределении: '+line.projectItemAllocation.quantity.stripTrailingZeros().toPlainString()}"></small></td>
+                <td><input class="form-control form-control-sm" type="number" th:min="${line.projectItemAllocation.projectItem.catalogItem.quantityStep}" th:step="${line.projectItemAllocation.projectItem.catalogItem.quantityStep}" th:attr="max=${available[line.projectItemAllocation.id]}" th:field="*{items[__${stat.index}__].quantity}"></td>
                 <td><input class="form-control form-control-sm" th:field="*{items[__${stat.index}__].destinationDesignation}"></td>
                 <td><input class="form-control form-control-sm" th:field="*{items[__${stat.index}__].shopNumber}"></td>
                 <td><input class="form-control form-control-sm" th:field="*{items[__${stat.index}__].notes}"></td>

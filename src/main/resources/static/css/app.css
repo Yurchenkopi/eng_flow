@@ -107,7 +107,7 @@ body {
 .action-card strong,.action-card small { display: block; }
 .action-card small { color: var(--app-muted); font-size: .75rem; font-weight: 400; margin-top: .15rem; }
 .action-card-primary { border-left: 3px solid var(--app-accent); }
-.action-tile { align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:.45rem;color:var(--text);display:flex;justify-content:space-between;margin-top:.8rem;max-width:440px;padding:1rem 1.1rem;text-decoration:none;transition:.12s ease; }
+.action-tile { align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:.45rem;color:var(--text);display:flex;justify-content:space-between;margin-top:.8rem;max-width:none;width:100%;padding:1rem 1.1rem;text-decoration:none;transition:.12s ease; }
 .action-tile:hover { background:var(--surface-muted);border-color:#9eb5cc;color:var(--accent); }
 .action-tile strong,.action-tile small { display:block; }.action-tile small,.cell-meta { color:var(--text-muted);font-size:.76rem;margin-top:.15rem; }.cell-meta{display:block}
 .form-section + .form-section { border-top: 1px solid var(--app-border); margin-top: 1rem; padding-top: 1rem; }

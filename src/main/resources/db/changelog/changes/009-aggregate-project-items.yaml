@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-aggregate-project-items
+      author: engflow
+      changes:
+        - createTable:
+            tableName: project_item_allocations
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: project_item_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: project_assembly_id, type: BIGINT }
+              - column: { name: quantity, type: 'NUMERIC(19,4)', constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+        - addForeignKeyConstraint: { baseTableName: project_item_allocations, baseColumnNames: project_item_id, referencedTableName: project_items, referencedColumnNames: id, constraintName: fk_project_item_allocations_item, onDelete: CASCADE }
+        - addForeignKeyConstraint: { baseTableName: project_item_allocations, baseColumnNames: project_assembly_id, referencedTableName: project_assemblies, referencedColumnNames: id, constraintName: fk_project_item_allocations_assembly }
+        - sql: { sql: 'ALTER TABLE project_item_allocations ADD CONSTRAINT ck_project_item_allocations_quantity_positive CHECK (quantity > 0)' }
+        - sql:
+            sql: INSERT INTO project_item_allocations (project_item_id, project_assembly_id, quantity, notes) SELECT id, project_assembly_id, required_quantity, notes FROM project_items
+        - addColumn:
+            tableName: transfer_act_items
+            columns:
+              - column: { name: project_item_allocation_id, type: BIGINT }
+        - sql:
+            sql: UPDATE transfer_act_items tai SET project_item_allocation_id = (SELECT MIN(pia.id) FROM project_item_allocations pia WHERE pia.project_item_id = tai.project_item_id)
+        - addNotNullConstraint: { tableName: transfer_act_items, columnName: project_item_allocation_id, columnDataType: BIGINT }
+        - addForeignKeyConstraint: { baseTableName: transfer_act_items, baseColumnNames: project_item_allocation_id, referencedTableName: project_item_allocations, referencedColumnNames: id, constraintName: fk_transfer_act_items_allocation }
+        - dropForeignKeyConstraint: { baseTableName: transfer_act_items, constraintName: fk_transfer_act_items_project_item }
+        - dropIndex: { tableName: transfer_act_items, indexName: idx_transfer_act_items_project_item_id }
+        - dropColumn: { tableName: transfer_act_items, columnName: project_item_id }
+        - sql:
+            sql: UPDATE project_item_allocations pia SET project_item_id = (SELECT MIN(pi2.id) FROM project_items pi2 WHERE pi2.project_id = (SELECT pi.project_id FROM project_items pi WHERE pi.id = pia.project_item_id) AND pi2.catalog_item_id = (SELECT pi.catalog_item_id FROM project_items pi WHERE pi.id = pia.project_item_id))
+        - sql:
+            sql: DELETE FROM project_items pi WHERE pi.id <> (SELECT MIN(pi2.id) FROM project_items pi2 WHERE pi2.project_id = pi.project_id AND pi2.catalog_item_id = pi.catalog_item_id)
+        - dropForeignKeyConstraint: { baseTableName: project_items, constraintName: fk_project_items_project_assembly }
+        - dropIndex: { tableName: project_items, indexName: idx_project_items_project_assembly_id }
+        - dropColumn: { tableName: project_items, columnName: project_assembly_id }
+        - dropColumn: { tableName: project_items, columnName: required_quantity }
+        - addUniqueConstraint: { tableName: project_items, columnNames: 'project_id, catalog_item_id', constraintName: uk_project_items_project_catalog_item }
+        - createIndex:
+            tableName: project_item_allocations
+            indexName: idx_project_item_allocations_item_id
+            columns: [{ column: { name: project_item_id } }]
+        - createIndex:
+            tableName: project_item_allocations
+            indexName: idx_project_item_allocations_assembly_id
+            columns: [{ column: { name: project_assembly_id } }]
+        - createIndex:
+            tableName: transfer_act_items
+            indexName: idx_transfer_act_items_allocation_id
+            columns: [{ column: { name: project_item_allocation_id } }]

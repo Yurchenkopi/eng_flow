@@ -22,6 +22,7 @@ public class OrganizationService {
         return organizationRepository.findAll();
     }
     public List<Organization> findCustomers(){return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.CUSTOMER);}
+    public List<Organization> findSuppliers(){return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.SUPPLIER);}
 
     public Organization findById(Long id) {
         return organizationRepository.findById(id)

@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public class TransferActItem {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="transfer_act_id",nullable=false) private TransferAct transferAct;
-    @NotNull @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="project_item_id",nullable=false) private ProjectItem projectItem;
+    @NotNull @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="project_item_allocation_id",nullable=false) private ProjectItemAllocation projectItemAllocation;
     @Column(name="destination_designation") private String destinationDesignation;
     @Column(name="shop_number",length=100) private String shopNumber;
     @NotNull(message="Укажите количество") @DecimalMin(value="0.0001",message="Количество должно быть положительным") @Digits(integer=15,fraction=4)
@@ -19,7 +19,7 @@ public class TransferActItem {
     @Transient private BigDecimal totalSameCatalogItem;
     public Long getId(){return id;} public void setId(Long id){this.id=id;}
     public TransferAct getTransferAct(){return transferAct;} public void setTransferAct(TransferAct transferAct){this.transferAct=transferAct;}
-    public ProjectItem getProjectItem(){return projectItem;} public void setProjectItem(ProjectItem projectItem){this.projectItem=projectItem;}
+    public ProjectItemAllocation getProjectItemAllocation(){return projectItemAllocation;} public void setProjectItemAllocation(ProjectItemAllocation value){projectItemAllocation=value;}
     public String getDestinationDesignation(){return destinationDesignation;} public void setDestinationDesignation(String value){destinationDesignation=value;}
     public String getShopNumber(){return shopNumber;} public void setShopNumber(String value){shopNumber=value;}
     public BigDecimal getQuantity(){return quantity;} public void setQuantity(BigDecimal value){quantity=value;}
