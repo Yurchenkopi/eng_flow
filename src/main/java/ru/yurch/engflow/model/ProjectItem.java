@@ -32,7 +32,7 @@ public class ProjectItem {
     public List<ProjectItemAllocation> getAllocations() { return allocations; }
     public void setAllocations(List<ProjectItemAllocation> allocations) { this.allocations = allocations == null ? new ArrayList<>() : allocations; }
     @Transient public BigDecimal getRequiredQuantity() { return allocations.stream().map(ProjectItemAllocation::getQuantity).filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add); }
-    @Transient public String getSectionSummary(){int count=allocations.size();if(count==1){ProjectAssembly assembly=allocations.getFirst().getProjectAssembly();return assembly==null?"Без раздела":assembly.getName();}int mod100=count%100,mod10=count%10;String word=mod100>=11&&mod100<=14?"разделов":mod10==1?"раздел":mod10>=2&&mod10<=4?"раздела":"разделов";return count+" "+word;}
+    @Transient public String getSectionSummary(){java.util.Map<Long,String> sections=new java.util.LinkedHashMap<>();for(ProjectItemAllocation allocation:allocations){ProjectAssembly assembly=allocation.getProjectAssembly();sections.putIfAbsent(assembly==null?null:assembly.getId(),assembly==null?"Без раздела":assembly.getName());}int count=sections.size();if(count==1)return sections.values().iterator().next();int mod100=count%100,mod10=count%10;String word=mod100>=11&&mod100<=14?"разделов":mod10==1?"раздел":mod10>=2&&mod10<=4?"раздела":"разделов";return count+" "+word;}
     public String getNotes() { return notes; } public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }
 }

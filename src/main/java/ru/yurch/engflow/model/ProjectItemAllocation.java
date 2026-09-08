@@ -8,11 +8,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
-@Table(name = "project_item_allocations", uniqueConstraints = @UniqueConstraint(name = "uk_project_item_allocations_item_assembly", columnNames = {"project_item_id", "project_assembly_id"}))
+@Table(name = "project_item_allocations")
 public class ProjectItemAllocation {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "project_item_id", nullable = false) private ProjectItem projectItem;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "project_assembly_id") private ProjectAssembly projectAssembly;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="project_subsection_id") private ProjectSubsection projectSubsection;
+    @Transient private Boolean detailForTransfer;
+    @Transient private String subsectionDesignation;
+    @Transient private String subsectionAppliesFor;
     @NotNull(message = "Укажите количество") @DecimalMin(value = "0.0001", message = "Количество должно быть положительным") @Digits(integer = 15, fraction = 4)
     @Column(nullable = false, precision = 19, scale = 4) private BigDecimal quantity;
     @Column(columnDefinition = "text") private String notes;
@@ -22,6 +26,10 @@ public class ProjectItemAllocation {
     public Long getId() { return id; } public void setId(Long id) { this.id = id; }
     public ProjectItem getProjectItem() { return projectItem; } public void setProjectItem(ProjectItem projectItem) { this.projectItem = projectItem; }
     public ProjectAssembly getProjectAssembly() { return projectAssembly; } public void setProjectAssembly(ProjectAssembly projectAssembly) { this.projectAssembly = projectAssembly; }
+    public ProjectSubsection getProjectSubsection(){return projectSubsection;} public void setProjectSubsection(ProjectSubsection value){projectSubsection=value;}
+    public boolean isDetailForTransfer(){return detailForTransfer!=null?detailForTransfer:projectSubsection!=null;} public void setDetailForTransfer(boolean value){detailForTransfer=value;}
+    public String getSubsectionDesignation(){return projectSubsection!=null?projectSubsection.getDesignation():subsectionDesignation;} public void setSubsectionDesignation(String value){subsectionDesignation=value;}
+    public String getSubsectionAppliesFor(){return projectSubsection!=null?projectSubsection.getAppliesFor():subsectionAppliesFor;} public void setSubsectionAppliesFor(String value){subsectionAppliesFor=value;}
     public BigDecimal getQuantity() { return quantity; } public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public String getNotes() { return notes; } public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;}

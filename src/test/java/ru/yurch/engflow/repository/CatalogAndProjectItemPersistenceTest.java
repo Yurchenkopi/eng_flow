@@ -15,10 +15,11 @@ class CatalogAndProjectItemPersistenceTest {
     @Autowired ProjectRepository projects;
     @Autowired ProjectAssemblyRepository assemblies;
     @Autowired ProjectItemRepository projectItems;
+    @Autowired MeasurementUnitRepository units;
 
     @Test
     void createsCatalogAssemblyAndFractionalProjectItems() {
-        CatalogItem catalogItem = new CatalogItem(); catalogItem.setName("Труба"); catalogItem.setUnit("м");
+        CatalogItem catalogItem = new CatalogItem(); catalogItem.setName("Труба"); catalogItem.setMeasurementUnit(units.findByName("м").orElseThrow());
         catalogItem = catalogItems.saveAndFlush(catalogItem);
         Project project = new Project(); project.setDesignation("ИТ500.00.00.000"); project.setName("Тестовая установка");
         project = projects.saveAndFlush(project);
@@ -32,6 +33,9 @@ class CatalogAndProjectItemPersistenceTest {
         assertThat(linked.getProject().getId()).isEqualTo(project.getId());
         assertThat(linked.getCatalogItem().getId()).isEqualTo(catalogItem.getId());
         assertThat(linked.getAllocations().get(1).getProjectAssembly()).isNull();
+        catalogItems.flush();
+        CatalogItem loaded=catalogItems.findAll(org.springframework.data.domain.Sort.by("name")).getFirst();
+        assertThat(loaded.getUnit()).isEqualTo("м");
     }
 
     private ProjectItem item(Project project, CatalogItem catalogItem, BigDecimal quantity) {

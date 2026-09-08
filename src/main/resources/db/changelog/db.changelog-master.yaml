@@ -23,3 +23,7 @@ databaseChangeLog:
       file: db/changelog/changes/011-add-allocation-timestamps-and-item-suppliers.yaml
   - include:
       file: db/changelog/changes/012-fix-piece-quantity-step-artifacts.yaml
+  - include:
+      file: db/changelog/changes/013-add-measurement-units-and-project-subsections.yaml
+  - include:
+      file: db/changelog/changes/014-update-allocation-uniqueness.yaml

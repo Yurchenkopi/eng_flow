@@ -10,12 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ProjectItemRepository extends JpaRepository<ProjectItem, Long> {
-    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly"})
+    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.measurementUnit", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly", "allocations.projectSubsection"})
     List<ProjectItem> findByProjectIdOrderByIdAsc(Long projectId);
-    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly"})
+    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.measurementUnit", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly", "allocations.projectSubsection"})
     Optional<ProjectItem> findByIdAndProjectId(Long id, Long projectId);
 
-    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly"})
+    @EntityGraph(attributePaths = {"catalogItem", "catalogItem.measurementUnit", "catalogItem.itemSuppliers", "catalogItem.itemSuppliers.supplier", "allocations", "allocations.projectAssembly", "allocations.projectSubsection"})
     @Query("""
             select distinct item from ProjectItem item
             where item.project.id = :projectId

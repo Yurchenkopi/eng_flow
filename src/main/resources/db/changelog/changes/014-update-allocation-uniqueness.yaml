@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-drop-section-only-allocation-uniqueness
+      author: engflow
+      changes:
+        - dropUniqueConstraint:
+            tableName: project_item_allocations
+            constraintName: uk_project_item_allocations_item_assembly
+  - changeSet:
+      id: 014-postgresql-allocation-uniqueness
+      author: engflow
+      dbms: postgresql
+      changes:
+        - sql:
+            sql: DROP INDEX IF EXISTS uk_project_item_allocations_without_assembly
+        - sql:
+            sql: CREATE UNIQUE INDEX uk_allocations_without_section ON project_item_allocations (project_item_id) WHERE project_assembly_id IS NULL AND project_subsection_id IS NULL
+        - sql:
+            sql: CREATE UNIQUE INDEX uk_allocations_section_only ON project_item_allocations (project_item_id, project_assembly_id) WHERE project_assembly_id IS NOT NULL AND project_subsection_id IS NULL
+        - sql:
+            sql: CREATE UNIQUE INDEX uk_allocations_section_subsection ON project_item_allocations (project_item_id, project_assembly_id, project_subsection_id) WHERE project_subsection_id IS NOT NULL

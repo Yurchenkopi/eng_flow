@@ -29,7 +29,7 @@ public class ProjectItemController {
         try { service.update(projectId, id, projectItem); } catch (IllegalArgumentException exception) { result.reject("invalidReferences", exception.getMessage()); formData(projectId, model, "Редактирование позиции"); return "project-items/form"; }
         redirect.addFlashAttribute("successMessage", "Позиция обновлена"); return "redirect:/projects/" + projectId + "/configuration";
     }
-    @PostMapping("/{id}/delete") public String delete(@PathVariable Long projectId, @PathVariable Long id, RedirectAttributes redirect) { service.delete(projectId, id); redirect.addFlashAttribute("successMessage", "Позиция удалена"); return "redirect:/projects/" + projectId + "/configuration"; }
+    @PostMapping("/{id}/delete") public String delete(@PathVariable Long projectId, @PathVariable Long id, RedirectAttributes redirect) { try{service.delete(projectId,id);redirect.addFlashAttribute("successMessage","Позиция удалена из комплектации");}catch(IllegalStateException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());}return "redirect:/projects/" + projectId + "/configuration"; }
     private void formData(Long projectId, Model model, String title) { model.addAttribute("project", projectService.findById(projectId)); model.addAttribute("assemblies", assemblyService.findByProject(projectId)); model.addAttribute("pageTitle", title); }
     private ProjectItemAllocation blankAllocation(){ProjectItemAllocation allocation=new ProjectItemAllocation();allocation.setProjectAssembly(new ProjectAssembly());return allocation;}
 }

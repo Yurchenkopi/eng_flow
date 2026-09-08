@@ -90,13 +90,23 @@ erDiagram
 
 **Назначение:** позиция общего каталога ранее использованных покупных изделий.
 
-Поля: `id`, `designation`, `name`, `manufacturer`, `unit`, `notes`, `createdAt`, `updatedAt`.
+Поля: `id`, `designation`, `name`, `manufacturer`, `measurementUnit -> MeasurementUnit`, `notes`, `createdAt`, `updatedAt`.
 
 Связи: `CatalogItem 1:N ItemSupplier`, `CatalogItem 1:N ProjectItem`; через `ItemSupplier` реализуется `CatalogItem N:M Organization`.
 
-Правила: стандартные и прочие изделия находятся в одном каталоге; стандарт может быть частью обозначения/наименования; `designation` пока не уникально; единица хранится в `CatalogItem` отдельно от количества.
+Правила: стандартные и прочие изделия находятся в одном каталоге; стандарт может быть частью обозначения/наименования; `designation` пока не уникально; единица обязательна и выбирается из справочника.
 
-`TODO / Open Question`: определение дубликатов при неуникальном обозначении, представление производителя и формат единиц измерения.
+`TODO / Open Question`: определение дубликатов при неуникальном обозначении и представление производителя.
+
+### 6.1. MeasurementUnit
+
+**Назначение:** небольшой справочник допустимых единиц измерения.
+
+Поля: `id`, `name` (уникальное обязательное отображаемое значение), `createdAt`, `updatedAt`.
+
+Связь: `MeasurementUnit 1:N CatalogItem`.
+
+Начальные значения: `шт.`, `мм`, `м`, `кг`, `г`, `л`, `компл.`. Существующая логика шага количества сохраняется по значению единицы.
 
 ## 7. ItemSupplier
 
@@ -120,7 +130,7 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 Поля: `id`, `project -> Project`, `name`, `designation` (nullable), `notes`.
 
-Связи: `Project 1:N ProjectAssembly`; `ProjectAssembly 1:N ProjectItem`, причем ссылка со стороны потребности необязательна.
+Связи: `Project 1:N ProjectAssembly`; `ProjectAssembly 1:N ProjectSubsection`; необязательная связь с `ProjectItemAllocation`.
 
 Правило: узлы в будущем могут копироваться в производный проект.
 
@@ -129,6 +139,16 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 Внутри проекта очевидные дубли имени узла без учета регистра не допускаются; сложная нормализация названий не выполняется.
 
 `TODO / Open Question`: нужна ли жесткая уникальность имени на уровне БД, сортировка узлов и состав копируемых данных.
+
+### 8.1. ProjectSubsection
+
+**Назначение:** необязательная детализация раздела для указания сборки/узла и назначения передаваемой заготовки.
+
+Поля: `id`, `projectAssembly -> ProjectAssembly`, `designation`, `appliesFor` (nullable), `createdAt`, `updatedAt`.
+
+Связи: `ProjectAssembly 1:N ProjectSubsection`; `ProjectSubsection 1:N ProjectItemAllocation`.
+
+Правила: designation обязателен; appliesFor пока является строкой; подраздел принадлежит ровно одному разделу; полная структура КД и сущность детали не моделируются.
 
 ## 9. ProjectItem
 
@@ -155,11 +175,11 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** распределяет количество агрегированной позиции комплектации по разделу проекта.
 
-Поля: `id`, `projectItem -> ProjectItem`, `projectAssembly -> ProjectAssembly` (nullable), `quantity`, `notes`, `createdAt`, `updatedAt`.
+Поля: `id`, `projectItem -> ProjectItem`, `projectAssembly -> ProjectAssembly` (nullable), `projectSubsection -> ProjectSubsection` (nullable), `quantity`, `notes`, `createdAt`, `updatedAt`.
 
 Связи: `ProjectItem 1:N ProjectItemAllocation`; необязательная `ProjectAssembly 1:N ProjectItemAllocation`; `ProjectItemAllocation 1:N TransferActItem`.
 
-Правила: quantity — положительный `BigDecimal` с шагом единицы `CatalogItem`; отсутствие раздела означает «Без раздела»; один раздел (включая «Без раздела») встречается в позиции не более одного раза; общая потребность родителя равна сумме allocations.
+Правила: quantity — положительный `BigDecimal` с шагом единицы `CatalogItem`; отсутствие раздела означает «Без раздела»; общая потребность родителя равна сумме allocations. Подраздел необязателен и при наличии обязан принадлежать выбранному разделу. В одной позиции уникальна комбинация section + subsection; для section без subsection разрешена одна обычная строка. Один section может одновременно иметь обычную строку и несколько строк разных subsection.
 
 ## 10. PurchaseOrder
 
@@ -223,13 +243,15 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** количество конкретной проектной потребности, переданное по акту в указанную конечную сборку/место применения.
 
-Поля: `id`, `transferAct -> TransferAct`, `projectItemAllocation -> ProjectItemAllocation`, `destinationDesignation`, `shopNumber`, `quantity`, `notes`.
+Поля: `id`, `transferAct -> TransferAct`, `projectItemAllocation -> ProjectItemAllocation`, `destinationDesignation`, `appliesFor`, `shopNumber`, `quantity`, `notes`.
 
 Связи: `TransferAct 1:N TransferActItem`; `ProjectItemAllocation 1:N TransferActItem`. Allocations одного CatalogItem могут встречаться в акте несколькими строками.
 
 Правила:
 
 - `quantity` — положительное дробное число (`BigDecimal`);
+- выбрать для акта можно только allocation с подразделом;
+- `destinationDesignation` и `appliesFor` — независимые исторические snapshot-значения, заполняемые из подраздела при создании строки;
 - обозначение и наименование изделия не дублируются и читаются по цепочке `TransferActItem -> ProjectItemAllocation -> ProjectItem -> CatalogItem`;
 - `transferredQuantity` для `ProjectItem` вычисляется как сумма `quantity` связанных `TransferActItem` только из подтвержденных актов и отдельно не хранится; черновики на расчет не влияют;
 - передача сверх `ProjectItem.requiredQuantity` в первой версии запрещена валидацией;

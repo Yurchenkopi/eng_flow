@@ -8,13 +8,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Entity @Table(name="transfer_acts", uniqueConstraints=@UniqueConstraint(name="uk_transfer_acts_year_number", columnNames={"act_year","number"}))
 public class TransferAct {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @Column(nullable=false) private Integer number;
     @Column(name="act_year",nullable=false) private Integer year;
-    @NotNull(message="Укажите дату акта") @Column(name="act_date",nullable=false) private LocalDate actDate=LocalDate.now();
+    @NotNull(message="Укажите дату акта") @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) @Column(name="act_date",nullable=false) private LocalDate actDate=LocalDate.now();
     @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="project_id",nullable=false) private Project project;
     @NotBlank(message="Укажите, кто сдал") @Column(name="delivered_by",nullable=false) private String deliveredBy;
     @NotBlank(message="Укажите, кто принял") @Column(name="received_by",nullable=false) private String receivedBy;

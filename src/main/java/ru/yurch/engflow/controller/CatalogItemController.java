@@ -12,14 +12,15 @@ import ru.yurch.engflow.service.ProjectItemService;
 import ru.yurch.engflow.service.ItemSupplierService;
 import ru.yurch.engflow.service.OrganizationService;
 import ru.yurch.engflow.model.ItemSupplier;
+import ru.yurch.engflow.service.MeasurementUnitService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller @RequestMapping("/catalog-items")
 public class CatalogItemController {
-    private final CatalogItemService service; private final ProjectItemService projectItemService;private final ItemSupplierService itemSuppliers;private final OrganizationService organizations;
-    public CatalogItemController(CatalogItemService service, ProjectItemService projectItemService,ItemSupplierService itemSuppliers,OrganizationService organizations) { this.service = service; this.projectItemService = projectItemService;this.itemSuppliers=itemSuppliers;this.organizations=organizations; }
+    private final CatalogItemService service; private final ProjectItemService projectItemService;private final ItemSupplierService itemSuppliers;private final OrganizationService organizations;private final MeasurementUnitService units;
+    public CatalogItemController(CatalogItemService service, ProjectItemService projectItemService,ItemSupplierService itemSuppliers,OrganizationService organizations,MeasurementUnitService units) { this.service = service; this.projectItemService = projectItemService;this.itemSuppliers=itemSuppliers;this.organizations=organizations;this.units=units; }
 
     @GetMapping public String list(@RequestParam(required = false) String query, @RequestParam(defaultValue = "name") String sort, @RequestParam(defaultValue = "asc") String direction, Model model) {
         List<CatalogItem> items = service.findAll(query, sort, direction); model.addAttribute("items", items);
@@ -41,5 +42,5 @@ public class CatalogItemController {
         if (result.hasErrors()) { catalogItem.setId(id); formData(model, "Редактирование изделия", null); return "catalog-items/form"; }
         service.update(id, catalogItem); redirect.addFlashAttribute("successMessage", "Изделие обновлено"); return "redirect:/catalog-items";
     }
-    private void formData(Model model, String title, Long projectId) { model.addAttribute("pageTitle", title); model.addAttribute("projectId", projectId);CatalogItem item=(CatalogItem)model.getAttribute("catalogItem");if(item!=null&&item.getId()!=null){model.addAttribute("itemSuppliers",itemSuppliers.findByCatalogItem(item.getId()));model.addAttribute("availableSuppliers",organizations.findSuppliers());model.addAttribute("newItemSupplier",new ItemSupplier());} }
+    private void formData(Model model, String title, Long projectId) { model.addAttribute("pageTitle", title); model.addAttribute("projectId", projectId);model.addAttribute("measurementUnits",units.findAll());CatalogItem item=(CatalogItem)model.getAttribute("catalogItem");if(item!=null&&item.getId()!=null){model.addAttribute("itemSuppliers",itemSuppliers.findByCatalogItem(item.getId()));model.addAttribute("availableSuppliers",organizations.findSuppliers());model.addAttribute("newItemSupplier",new ItemSupplier());} }
 }
