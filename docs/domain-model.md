@@ -17,16 +17,19 @@ erDiagram
     CATALOG_ITEM ||--o{ PROJECT_ITEM : requested_as
     CATALOG_ITEM ||--o{ ITEM_SUPPLIER : offered_by
     ORGANIZATION ||--o{ ITEM_SUPPLIER : supplier
-    ORGANIZATION ||--o{ PURCHASE_ORDER : supplier
-    PURCHASE_ORDER ||--|{ PURCHASE_ORDER_LINE : contains
-    PROJECT_ITEM ||--o{ PURCHASE_ORDER_LINE : allocated_to
-    PURCHASE_ORDER_LINE ||--o{ RECEIPT : received_in
+    PROJECT ||--o{ PROCUREMENT : has
+    ORGANIZATION ||--o{ PROCUREMENT : supplier
+    PROCUREMENT ||--o{ PROCUREMENT_LINE : contains
+    PROJECT_ITEM ||--o{ PROCUREMENT_LINE : requested_as
+    PROCUREMENT ||--o{ SUPPLIER_INVOICE : billed_by
+    SUPPLIER_INVOICE ||--o{ SUPPLIER_INVOICE_LINE : contains
+    PROCUREMENT_LINE ||--o{ SUPPLIER_INVOICE_LINE : distributed_as
     PROJECT ||--o{ TRANSFER_ACT : documented_by
     TRANSFER_ACT ||--|{ TRANSFER_ACT_ITEM : contains
     PROJECT_ITEM_ALLOCATION ||--o{ TRANSFER_ACT_ITEM : transferred_as
 ```
 
-Диаграмма не вводит сущности ролей, единиц измерения, файлового хранилища, склада, счетов, писем или учета времени.
+Диаграмма не вводит сущности ролей, файлового хранилища, поступлений, склада, писем или учета времени.
 
 ## 2. Project
 
@@ -40,7 +43,7 @@ erDiagram
 
 - `Organization 1:N Project`: организация является заказчиком нескольких проектов; у проекта один заказчик.
 - Самоссылка `Project 1:N Project`: исходный проект может быть основой нескольких новых; у нового проекта не более одного `basedOnProject`.
-- `Project 1:N ProjectImage`, `ProjectAssembly`, `ProjectItem`, `TransferAct`.
+- `Project 1:N ProjectImage`, `ProjectAssembly`, `ProjectItem`, `Procurement`, `TransferAct`.
 
 Правила:
 
@@ -48,7 +51,7 @@ erDiagram
 - `completionDate` — фактическая дата завершения; до завершения равна `NULL`. Отдельное `plannedCompletionDate` пока не вводится.
 - Год выводится из `completionDate` и отдельно не хранится.
 - `designation` обязательно и уникально; жесткая валидация формата пока отсутствует.
-- `basedOnProject` означает происхождение и возможное копирование; проекты не синхронизируются после создания. `PurchaseOrder`, `Receipt` и `completionDate` динамически не наследуются.
+- `basedOnProject` означает происхождение и возможное копирование; проекты не синхронизируются после создания. Закупки, счета, будущие поступления и `completionDate` динамически не наследуются.
 
 `TODO / Open Question`: обязательность заказчика, нормализация обозначения, ограничения количества и точный состав копируемых данных.
 
@@ -70,7 +73,7 @@ erDiagram
 
 Поля: `id`, `name`, `shortName`, `inn`, `kpp`, `ogrn`, `legalAddress`, `postalAddress`, `website`, `notes`, `createdAt`, `updatedAt`; роли `CUSTOMER`, `SUPPLIER`.
 
-Связи: `Organization 1:N Contact`, `Project` (как заказчик), `ItemSupplier` и `PurchaseOrder` (как поставщик).
+Связи: `Organization 1:N Contact`, `Project` (как заказчик), `ItemSupplier` и `Procurement` (как поставщик).
 
 Правила: организация хранит набор ролей и может одновременно иметь `CUSTOMER` и `SUPPLIER`; значение `BOTH` не используется; отдельные `Customer` и `Supplier` не создаются.
 
@@ -142,13 +145,13 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 ### 8.1. ProjectSubsection
 
-**Назначение:** необязательная детализация раздела для указания сборки/узла и назначения передаваемой заготовки.
+**Назначение:** необязательная детализация раздела для указания сборки/узла.
 
-Поля: `id`, `projectAssembly -> ProjectAssembly`, `designation`, `appliesFor` (nullable), `createdAt`, `updatedAt`.
+Поля: `id`, `projectAssembly -> ProjectAssembly`, `designation`, `createdAt`, `updatedAt`.
 
 Связи: `ProjectAssembly 1:N ProjectSubsection`; `ProjectSubsection 1:N ProjectItemAllocation`.
 
-Правила: designation обязателен; appliesFor пока является строкой; подраздел принадлежит ровно одному разделу; полная структура КД и сущность детали не моделируются.
+Правила: designation обязателен; подраздел принадлежит ровно одному разделу; полная структура КД и сущность детали не моделируются. `appliesFor` не является свойством подраздела.
 
 ## 9. ProjectItem
 
@@ -156,7 +159,7 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 Поля: `id`, `project -> Project`, `catalogItem -> CatalogItem`, `notes`, `createdAt`, `updatedAt`. `requiredQuantity` — вычисляемая сумма allocations, не отдельная колонка.
 
-Связи: `Project 1:N ProjectItem`; `CatalogItem 1:N ProjectItem`; `ProjectItem 1:N ProjectItemAllocation`; `ProjectItem 1:N PurchaseOrderLine`.
+Связи: `Project 1:N ProjectItem`; `CatalogItem 1:N ProjectItem`; `ProjectItem 1:N ProjectItemAllocation`; `ProjectItem 1:N ProcurementLine`.
 
 Правила:
 
@@ -175,57 +178,65 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** распределяет количество агрегированной позиции комплектации по разделу проекта.
 
-Поля: `id`, `projectItem -> ProjectItem`, `projectAssembly -> ProjectAssembly` (nullable), `projectSubsection -> ProjectSubsection` (nullable), `quantity`, `notes`, `createdAt`, `updatedAt`.
+Поля: `id`, `projectItem -> ProjectItem`, `projectAssembly -> ProjectAssembly` (nullable), `projectSubsection -> ProjectSubsection` (nullable), `appliesFor` (nullable), `quantity`, `notes`, `createdAt`, `updatedAt`.
 
 Связи: `ProjectItem 1:N ProjectItemAllocation`; необязательная `ProjectAssembly 1:N ProjectItemAllocation`; `ProjectItemAllocation 1:N TransferActItem`.
 
-Правила: quantity — положительный `BigDecimal` с шагом единицы `CatalogItem`; отсутствие раздела означает «Без раздела»; общая потребность родителя равна сумме allocations. Подраздел необязателен и при наличии обязан принадлежать выбранному разделу. В одной позиции уникальна комбинация section + subsection; для section без subsection разрешена одна обычная строка. Один section может одновременно иметь обычную строку и несколько строк разных subsection.
+Правила: quantity — положительный `BigDecimal` с шагом единицы `CatalogItem`; отсутствие раздела означает «Без раздела»; общая потребность родителя равна сумме allocations. Подраздел необязателен и при наличии обязан принадлежать выбранному разделу. `appliesFor` — свободный текст и не обязан соответствовать подразделу. Без подраздела для одного section разрешена одна строка. При наличии подраздела уникальна комбинация `section + subsection + appliesFor`; один subsection может иметь несколько строк с разным `appliesFor`.
 
-## 10. PurchaseOrder
+## 10. Procurement
 
-**Назначение:** факт размещения заказа у одного поставщика.
+**Назначение:** закупочный процесс у конкретного поставщика в рамках одного проекта.
 
-Поля: `id`, `supplier -> Organization`, `orderDate`, `plannedDeliveryDate`, `notes`.
+Поля: `id`, `project -> Project`, `supplier -> Organization`, `rfqSentAt` (nullable), `notes` (nullable), `createdAt`, `updatedAt`.
 
-Связи: `Organization 1:N PurchaseOrder`; `PurchaseOrder 1:N PurchaseOrderLine`.
+Связи: `Project 1:N Procurement`; `Organization 1:N Procurement`; `Procurement 1:N ProcurementLine`; `Procurement 1:N SupplierInvoice`.
 
-Правила: обязательного `orderNumber` нет; заказ может объединять разные проекты; счет не считается автоматически заказом и пока не моделируется.
+Правила: supplier обязан иметь роль `SUPPLIER`; один поставщик может иметь несколько Procurement одного проекта; `rfqSentAt != NULL` фиксирует факт отправки запроса без email-автоматизации.
 
-`TODO / Open Question`: жизненный цикл, статусы, пустой заказ, отмена/изменение, документы-основания и будущая связь со счетом.
+`TODO / Open Question`: отмена/повторная отправка RFQ, ручная корректировка даты и жизненный цикл закупки.
 
-## 11. PurchaseOrderLine
+## 11. ProcurementLine
 
-**Назначение:** часть проектной потребности, включенная в конкретный заказ.
+**Назначение:** количество конкретной проектной потребности, запрошенное у поставщика в рамках Procurement.
 
-Поля: `id`, `purchaseOrder -> PurchaseOrder`, `projectItem -> ProjectItem`, `orderedQuantity`, `notes`.
+Поля: `id`, `procurement -> Procurement`, `projectItem -> ProjectItem`, `requestedQuantity`, `notes` (nullable), `createdAt`, `updatedAt`.
 
-Связи: `PurchaseOrder 1:N PurchaseOrderLine`; `ProjectItem 1:N PurchaseOrderLine`; `PurchaseOrderLine 1:N Receipt`.
+Связи: `Procurement 1:N ProcurementLine`; `ProjectItem 1:N ProcurementLine`; `ProcurementLine 1:N SupplierInvoiceLine`.
 
-Правила: `PurchaseOrderLine` связывает потребность с конкретным заказом; одна потребность может быть разделена между несколькими заказами; строки одного заказа могут относиться к разным проектам; количество может быть дробным. Цена исключена из MVP; цены, валюты, НДС и счета проектируются отдельно позже.
+Правила: ProjectItem принадлежит проекту Procurement; количество положительное и дробное; пара `procurement + projectItem` уникальна; одна потребность может находиться в Procurement нескольких поставщиков; суммарно запрошенное количество по всем поставщикам не превышает `requiredQuantity`.
 
-`TODO / Open Question`: повторные строки одной потребности, перепоставка, ограничение суммарно заказанного количества, изменение и отмена заказа.
+## 12. SupplierInvoice
 
-## 12. Receipt
+**Назначение:** счет поставщика в рамках Procurement; сам факт его получения еще не означает размещенный заказ.
 
-**Назначение:** фактическое поступление группы одинаковых изделий по строке заказа.
+Поля: `id`, `procurement -> Procurement`, `invoiceNumber`, `invoiceDate`, `paymentSubmittedDate` (nullable), `fileOriginalName` (nullable), `fileStorageName` (nullable), `fileContentType` (nullable), `notes` (nullable), `createdAt`, `updatedAt`.
 
-Поля: `id`, `purchaseOrderLine -> PurchaseOrderLine`, `quantity`, `receiptDate`, `notes`.
+Связи: `Procurement 1:N SupplierInvoice`; `SupplierInvoice 1:N SupplierInvoiceLine`.
 
-Связь: `PurchaseOrderLine 1:N Receipt`.
+Правила: действие «Передать в оплату» устанавливает `paymentSubmittedDate`; только после этого количества строк счета считаются заказанными. Файл хранится в файловой системе, БД содержит метаданные и безопасное имя хранения; поддерживаются PDF, изображения, XLS/XLSX, замена и удаление.
 
-Правила: допускаются частичные поступления; записи поштучно не создаются; полученное количество — сумма `Receipt.quantity`; количество может быть дробным; статус строки вычисляется относительно `orderedQuantity` и не хранится вручную, если выводится из фактов.
+`TODO / Open Question`: отмена передачи в оплату, ручная дата, валюты, НДС, итоги и жизненный цикл файла/счета.
 
-Статус строки заказа и статус обеспечения проектной потребности — разные уровни. `PurchaseOrderLine` оценивается относительно `orderedQuantity`; `ProjectItem` — относительно `requiredQuantity` с учетом всех относящихся к нему строк и поступлений.
+## 13. SupplierInvoiceLine и производные показатели
 
-`TODO / Open Question`: обработка перепоставки, возвратов, исправлений и поступлений сверх заказа.
+**Назначение:** распределяет часть `ProcurementLine` в конкретный счет.
 
-## 13. Производные показатели
+Поля: `id`, `supplierInvoice -> SupplierInvoice`, `procurementLine -> ProcurementLine`, `quantity`, `unitPrice` (nullable), `notes` (nullable).
 
-- Полученное количество строки: сумма `Receipt.quantity`.
-- Статус `PurchaseOrderLine`: результат сравнения суммы ее `Receipt.quantity` с `orderedQuantity`.
-- Статус обеспечения `ProjectItem`: результат сравнения относящихся к потребности заказов и поступлений с `requiredQuantity`.
+Связи: `SupplierInvoice 1:N SupplierInvoiceLine`; `ProcurementLine 1:N SupplierInvoiceLine`.
 
-`TODO / Open Question`: точные формулы для отмен, изменений заказа, перепоставок и будущего собственного наличия. Полноценная складская модель пока не проектируется.
+Правила: обе родительские сущности принадлежат одной Procurement; количество положительное и дробное; пара `supplierInvoice + procurementLine` уникальна; сумма количества по всем счетам строки не превышает `requestedQuantity`.
+
+Производные показатели `ProjectItem`:
+
+- `requestedQuantity` — сумма `ProcurementLine.requestedQuantity` по всем поставщикам;
+- `orderedQuantity` — сумма `SupplierInvoiceLine.quantity` по всем поставщикам и счетам только при `paymentSubmittedDate != NULL`;
+- без ProcurementLine статус `NOT_REQUESTED`; при отправленном RFQ и нулевом ordered — `RFQ_SENT`; при ordered > 0 — `ORDER_PLACED`;
+- частичное покрытие не создает `PARTIALLY_ORDERED`, а отображается как `ordered / required`;
+- `PARTIALLY_RECEIVED`, `RECEIVED`, `IN_STOCK` зарезервированы, но до появления фактических данных не вычисляются.
+
+`TODO / Open Question`: поступления, склад, возвраты, перепоставка, изменение потребности и отмена/изменение заказа.
 
 ## 14. TransferAct
 
@@ -251,7 +262,7 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 - `quantity` — положительное дробное число (`BigDecimal`);
 - выбрать для акта можно только allocation с подразделом;
-- `destinationDesignation` и `appliesFor` — независимые исторические snapshot-значения, заполняемые из подраздела при создании строки;
+- `destinationDesignation` и `appliesFor` — независимые исторические snapshot-значения, заполняемые соответственно из подраздела и allocation при создании строки;
 - обозначение и наименование изделия не дублируются и читаются по цепочке `TransferActItem -> ProjectItemAllocation -> ProjectItem -> CatalogItem`;
 - `transferredQuantity` для `ProjectItem` вычисляется как сумма `quantity` связанных `TransferActItem` только из подтвержденных актов и отдельно не хранится; черновики на расчет не влияют;
 - передача сверх `ProjectItem.requiredQuantity` в первой версии запрещена валидацией;
@@ -270,7 +281,7 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 Поля и связи следующих областей пока не согласованы, поэтому они не включены в ER-диаграмму:
 
 - склад и распределение собственного наличия (возможное направление `WarehouseAllocation`);
-- счета (`Invoice`);
+- поступления и приемка (`Receipt`/`GoodsReceipt`);
 - официальные письма (`OfficialLetter`);
 - учет времени (возможное направление `WorkLog`, только после анализа `hours_meter`);
 - пользователи и роли доступа.

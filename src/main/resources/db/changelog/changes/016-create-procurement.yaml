@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: 016-create-procurement
+      author: engflow
+      changes:
+        - createTable:
+            tableName: procurements
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: project_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: supplier_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: rfq_sent_at, type: TIMESTAMP WITH TIME ZONE }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - addForeignKeyConstraint: { baseTableName: procurements, baseColumnNames: project_id, referencedTableName: projects, referencedColumnNames: id, constraintName: fk_procurements_project }
+        - addForeignKeyConstraint: { baseTableName: procurements, baseColumnNames: supplier_id, referencedTableName: organizations, referencedColumnNames: id, constraintName: fk_procurements_supplier }
+        - createIndex: { tableName: procurements, indexName: idx_procurements_project_id, columns: [{ column: { name: project_id } }] }
+        - createIndex: { tableName: procurements, indexName: idx_procurements_supplier_id, columns: [{ column: { name: supplier_id } }] }
+        - createTable:
+            tableName: procurement_lines
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: procurement_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: project_item_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: requested_quantity, type: "DECIMAL(19,4)", constraints: { nullable: false } }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - addForeignKeyConstraint: { baseTableName: procurement_lines, baseColumnNames: procurement_id, referencedTableName: procurements, referencedColumnNames: id, constraintName: fk_procurement_lines_procurement, onDelete: CASCADE }
+        - addForeignKeyConstraint: { baseTableName: procurement_lines, baseColumnNames: project_item_id, referencedTableName: project_items, referencedColumnNames: id, constraintName: fk_procurement_lines_project_item }
+        - addUniqueConstraint: { tableName: procurement_lines, columnNames: 'procurement_id, project_item_id', constraintName: uk_procurement_lines_procurement_item }
+        - sql:
+            sql: ALTER TABLE procurement_lines ADD CONSTRAINT ck_procurement_lines_quantity_positive CHECK (requested_quantity > 0)
+        - createIndex: { tableName: procurement_lines, indexName: idx_procurement_lines_project_item_id, columns: [{ column: { name: project_item_id } }] }
+        - createTable:
+            tableName: supplier_invoices
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: procurement_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: invoice_number, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: invoice_date, type: DATE, constraints: { nullable: false } }
+              - column: { name: payment_submitted_date, type: DATE }
+              - column: { name: file_original_name, type: VARCHAR(255) }
+              - column: { name: file_storage_name, type: VARCHAR(255) }
+              - column: { name: file_content_type, type: VARCHAR(255) }
+              - column: { name: notes, type: TEXT }
+              - column: { name: created_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: TIMESTAMP WITH TIME ZONE, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - addForeignKeyConstraint: { baseTableName: supplier_invoices, baseColumnNames: procurement_id, referencedTableName: procurements, referencedColumnNames: id, constraintName: fk_supplier_invoices_procurement, onDelete: CASCADE }
+        - createIndex: { tableName: supplier_invoices, indexName: idx_supplier_invoices_procurement_id, columns: [{ column: { name: procurement_id } }] }
+        - createTable:
+            tableName: supplier_invoice_lines
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: supplier_invoice_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: procurement_line_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: quantity, type: "DECIMAL(19,4)", constraints: { nullable: false } }
+              - column: { name: unit_price, type: "DECIMAL(19,2)" }
+              - column: { name: notes, type: TEXT }
+        - addForeignKeyConstraint: { baseTableName: supplier_invoice_lines, baseColumnNames: supplier_invoice_id, referencedTableName: supplier_invoices, referencedColumnNames: id, constraintName: fk_invoice_lines_invoice, onDelete: CASCADE }
+        - addForeignKeyConstraint: { baseTableName: supplier_invoice_lines, baseColumnNames: procurement_line_id, referencedTableName: procurement_lines, referencedColumnNames: id, constraintName: fk_invoice_lines_procurement_line }
+        - addUniqueConstraint: { tableName: supplier_invoice_lines, columnNames: 'supplier_invoice_id, procurement_line_id', constraintName: uk_invoice_lines_invoice_procurement_line }
+        - sql:
+            sql: ALTER TABLE supplier_invoice_lines ADD CONSTRAINT ck_invoice_lines_quantity_positive CHECK (quantity > 0)
+        - sql:
+            sql: ALTER TABLE supplier_invoice_lines ADD CONSTRAINT ck_invoice_lines_unit_price_nonnegative CHECK (unit_price IS NULL OR unit_price >= 0)
+        - createIndex: { tableName: supplier_invoice_lines, indexName: idx_invoice_lines_procurement_line_id, columns: [{ column: { name: procurement_line_id } }] }

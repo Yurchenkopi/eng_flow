@@ -128,8 +128,19 @@ body {
 .status-draft { background:#fff2dc;color:var(--warning); }.status-transferred { background:#e3f3eb;color:var(--success); }
 
 .form-card { max-width: 1180px; padding: 1.25rem; }
+.form-card-full { max-width: none; width: 100%; }
 .app-main > form.content-card.form-card { max-width: none; width: 100%; }
 .form-grid { display:grid;gap:.8rem;grid-template-columns:180px 1fr 1fr; }.form-grid-full{grid-column:1/-1}
+.supplier-card .content-card-header { align-items:center;display:flex;justify-content:space-between;padding:1rem 1.25rem; }
+.supplier-card .content-card-header small { color:var(--app-muted);display:block;margin-top:.25rem; }
+.supplier-editor { align-items:end;border-top:1px solid var(--app-border);display:grid;gap:1rem;grid-template-columns:minmax(220px,1.4fr) minmax(170px,1fr) minmax(220px,1.4fr) auto;padding:1.25rem; }
+.supplier-empty { margin:1rem 1.25rem; }
+.procurement-rfq { background:#fff9e8!important; }
+.procurement-order-partial { background:#eef6ff!important; }
+.procurement-order { background:#e5f1ff!important; }
+.procurement-partial-received { background:#edf8f0!important; }
+.procurement-received { background:#def3e6!important; }
+@media (max-width: 900px) { .supplier-editor { grid-template-columns:1fr; } }
 .form-label { font-size: 0.84rem; font-weight: 600; margin-bottom: 0.35rem; }
 .form-control, .form-select { border-color: #cfd7df; font-size: 0.9rem; }
 .required { color: #b53e3e; }

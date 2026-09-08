@@ -24,3 +24,6 @@ server:
 logging:
   level:
     org.hibernate.SQL: INFO
+
+engflow:
+  invoice-storage: ${INVOICE_STORAGE:./data/invoices}

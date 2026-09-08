@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 015-move-applies-for-to-allocation
+      author: engflow
+      changes:
+        - addColumn:
+            tableName: project_item_allocations
+            columns:
+              - column: { name: applies_for, type: VARCHAR(255) }
+        - sql:
+            sql: UPDATE project_item_allocations a SET applies_for = (SELECT s.applies_for FROM project_subsections s WHERE s.id = a.project_subsection_id) WHERE a.project_subsection_id IS NOT NULL
+        - dropColumn: { tableName: project_subsections, columnName: applies_for }
+  - changeSet:
+      id: 015-postgresql-allocation-uniqueness
+      author: engflow
+      dbms: postgresql
+      changes:
+        - sql:
+            sql: DROP INDEX IF EXISTS uk_allocations_section_subsection
+        - sql:
+            sql: CREATE UNIQUE INDEX uk_allocations_section_subsection_applies_for ON project_item_allocations (project_item_id, project_assembly_id, project_subsection_id, COALESCE(applies_for, '')) WHERE project_subsection_id IS NOT NULL

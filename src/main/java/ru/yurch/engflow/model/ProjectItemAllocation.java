@@ -14,6 +14,7 @@ public class ProjectItemAllocation {
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "project_item_id", nullable = false) private ProjectItem projectItem;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "project_assembly_id") private ProjectAssembly projectAssembly;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="project_subsection_id") private ProjectSubsection projectSubsection;
+    @Column(name="applies_for") private String appliesFor;
     @Transient private Boolean detailForTransfer;
     @Transient private String subsectionDesignation;
     @Transient private String subsectionAppliesFor;
@@ -29,7 +30,8 @@ public class ProjectItemAllocation {
     public ProjectSubsection getProjectSubsection(){return projectSubsection;} public void setProjectSubsection(ProjectSubsection value){projectSubsection=value;}
     public boolean isDetailForTransfer(){return detailForTransfer!=null?detailForTransfer:projectSubsection!=null;} public void setDetailForTransfer(boolean value){detailForTransfer=value;}
     public String getSubsectionDesignation(){return projectSubsection!=null?projectSubsection.getDesignation():subsectionDesignation;} public void setSubsectionDesignation(String value){subsectionDesignation=value;}
-    public String getSubsectionAppliesFor(){return projectSubsection!=null?projectSubsection.getAppliesFor():subsectionAppliesFor;} public void setSubsectionAppliesFor(String value){subsectionAppliesFor=value;}
+    public String getSubsectionAppliesFor(){return appliesFor!=null?appliesFor:subsectionAppliesFor;} public void setSubsectionAppliesFor(String value){subsectionAppliesFor=value;appliesFor=value;}
+    public String getAppliesFor(){return appliesFor;} public void setAppliesFor(String value){appliesFor=value;}
     public BigDecimal getQuantity() { return quantity; } public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public String getNotes() { return notes; } public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;}

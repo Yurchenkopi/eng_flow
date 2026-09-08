@@ -27,3 +27,7 @@ databaseChangeLog:
       file: db/changelog/changes/013-add-measurement-units-and-project-subsections.yaml
   - include:
       file: db/changelog/changes/014-update-allocation-uniqueness.yaml
+  - include:
+      file: db/changelog/changes/015-move-allocation-applies-for.yaml
+  - include:
+      file: db/changelog/changes/016-create-procurement.yaml
