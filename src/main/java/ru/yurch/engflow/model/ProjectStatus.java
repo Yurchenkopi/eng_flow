@@ -1,9 +1,8 @@
 package ru.yurch.engflow.model;
 
 public enum ProjectStatus {
-    DESIGN("Проектирование"),
-    PRODUCTION("Производство"),
-    COMPLETED("Завершен");
+
+    DESIGN("Проектирование"), PRODUCTION("Производство"), COMPLETED("Завершен");
 
     private final String displayName;
 

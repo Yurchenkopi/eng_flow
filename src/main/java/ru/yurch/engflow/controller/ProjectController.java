@@ -15,8 +15,8 @@ import ru.yurch.engflow.model.Project;
 import ru.yurch.engflow.model.ProjectStatus;
 import ru.yurch.engflow.service.DuplicateProjectDesignationException;
 import ru.yurch.engflow.service.OrganizationService;
-import ru.yurch.engflow.service.ProjectService;
 import ru.yurch.engflow.service.ProjectItemService;
+import ru.yurch.engflow.service.ProjectService;
 
 @Controller
 @RequestMapping("/projects")
@@ -26,8 +26,10 @@ public class ProjectController {
     private final OrganizationService organizationService;
     private final ProjectItemService projectItemService;
 
-    public ProjectController(ProjectService projectService, OrganizationService organizationService,
-                             ProjectItemService projectItemService) {
+    public ProjectController(
+            ProjectService projectService,
+            OrganizationService organizationService,
+            ProjectItemService projectItemService) {
         this.projectService = projectService;
         this.organizationService = organizationService;
         this.projectItemService = projectItemService;
@@ -54,10 +56,11 @@ public class ProjectController {
     }
 
     @PostMapping
-    public String create(@Valid @ModelAttribute Project project,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    public String create(
+            @Valid @ModelAttribute Project project,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("pageTitle", "Новый проект");
             return "projects/form";
@@ -79,7 +82,7 @@ public class ProjectController {
         var items = projectItemService.findByProject(id);
         model.addAttribute("configurationCount", items.size());
         model.addAttribute("configurationPreview", items.stream().limit(5).toList());
-        model.addAttribute("configurationUpdatedAt",projectItemService.lastConfigurationChange(id));
+        model.addAttribute("configurationUpdatedAt", projectItemService.lastConfigurationChange(id));
         return "projects/details";
     }
 
@@ -91,11 +94,12 @@ public class ProjectController {
     }
 
     @PostMapping("/{id}")
-    public String update(@PathVariable Long id,
-                         @Valid @ModelAttribute Project project,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    public String update(
+            @PathVariable Long id,
+            @Valid @ModelAttribute Project project,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             project.setId(id);
             model.addAttribute("pageTitle", "Редактирование проекта");

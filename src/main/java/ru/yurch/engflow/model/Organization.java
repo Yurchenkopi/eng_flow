@@ -1,17 +1,17 @@
 package ru.yurch.engflow.model;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.HashSet;
@@ -87,6 +87,11 @@ public class Organization {
         this.notes = notes;
     }
 
-    public Set<OrganizationRole> getRoles() { return roles; }
-    public void setRoles(Set<OrganizationRole> roles) { this.roles = roles == null ? new HashSet<>() : roles; }
+    public Set<OrganizationRole> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<OrganizationRole> roles) {
+        this.roles = roles == null ? new HashSet<>() : roles;
+    }
 }

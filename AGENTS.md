@@ -58,6 +58,10 @@ Typical package names include `ru.yurch.engflow.controller`, `ru.yurch.engflow.s
 
 ## Verification
 
+- All new Java code must comply with `config/checkstyle/checkstyle.xml`: four-space indentation, one statement/declaration per line, explicit imports, conventional Java braces and spacing, and lines up to 140 characters.
+- Format Java sources with `mvn formatter:format`; the shared Eclipse profile is `config/checkstyle/eclipse-formatter.xml`.
+- Before completing a task, run `mvn checkstyle:check` and `mvn verify`. Checkstyle checks production and test Java sources during `validate` and fails the build on violations.
+- Do not suppress Checkstyle rules without an objective, documented reason.
 - Run tests with `mvn test`.
 - Build the executable application with `mvn package`.
 - Run locally with `mvn spring-boot:run` after PostgreSQL connection variables are configured.

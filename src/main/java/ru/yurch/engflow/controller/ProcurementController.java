@@ -1,31 +1,256 @@
 package ru.yurch.engflow.controller;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.yurch.engflow.model.*;
-import ru.yurch.engflow.service.*;
 import java.math.BigDecimal;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.yurch.engflow.model.Procurement;
+import ru.yurch.engflow.model.ProcurementLine;
+import ru.yurch.engflow.model.ProjectItem;
+import ru.yurch.engflow.service.OrganizationService;
+import ru.yurch.engflow.service.ProcurementService;
+import ru.yurch.engflow.service.ProjectItemService;
+import ru.yurch.engflow.service.ProjectService;
 
-@Controller @RequestMapping("/projects/{projectId}/procurements")
+@Controller
+@RequestMapping("/projects/{projectId}/procurements")
 public class ProcurementController {
-    private final ProcurementService service;private final ProjectService projects;private final ProjectItemService projectItems;private final OrganizationService organizations;
-    public ProcurementController(ProcurementService service,ProjectService projects,ProjectItemService projectItems,OrganizationService organizations){this.service=service;this.projects=projects;this.projectItems=projectItems;this.organizations=organizations;}
-    @GetMapping public String list(@PathVariable Long projectId,Model model){var procurements=service.findByProject(projectId);model.addAttribute("project",projects.findById(projectId));model.addAttribute("procurements",procurements);model.addAttribute("lineCounts",procurements.stream().collect(Collectors.toMap(Procurement::getId,p->service.lineCount(p.getId()))));model.addAttribute("invoiceCounts",procurements.stream().collect(Collectors.toMap(Procurement::getId,p->service.invoiceCount(p.getId()))));model.addAttribute("statuses",procurements.stream().collect(Collectors.toMap(Procurement::getId,service::status)));return "procurements/list";}
-    @GetMapping("/new") public String createForm(@PathVariable Long projectId,Model model){model.addAttribute("procurement",new Procurement());formData(projectId,"Новая закупка",model);return "procurements/form";}
-    @PostMapping public String create(@PathVariable Long projectId,@ModelAttribute Procurement procurement,RedirectAttributes redirect,Model model){try{Procurement saved=service.create(projectId,procurement);redirect.addFlashAttribute("successMessage","Закупка создана");return redirect(projectId,saved.getId());}catch(RuntimeException exception){model.addAttribute("errorMessage",exception.getMessage());model.addAttribute("procurement",procurement);formData(projectId,"Новая закупка",model);return "procurements/form";}}
-    @GetMapping("/from-configuration") public String configurationDraft(@PathVariable Long projectId,@RequestParam(required=false) Long procurementSupplierId,@RequestParam(required=false) java.util.List<Long> itemIds,@RequestParam(defaultValue="false") boolean allowUnlistedSupplier,Model model,RedirectAttributes redirect){try{var selected=service.selectedForConfiguration(projectId,procurementSupplierId,itemIds,allowUnlistedSupplier);model.addAttribute("project",projects.findById(projectId));model.addAttribute("supplier",organizations.findById(procurementSupplierId));model.addAttribute("items",selected);model.addAttribute("allowUnlistedSupplier",allowUnlistedSupplier);model.addAttribute("remaining",selected.stream().collect(Collectors.toMap(ProjectItem::getId,item->item.getRequiredQuantity().subtract(service.progress(item).plannedQuantity()))));return "procurements/configuration-draft";}catch(RuntimeException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());return "redirect:/projects/"+projectId+"/configuration";}}
-    @PostMapping("/from-configuration") public String createFromConfiguration(@PathVariable Long projectId,@RequestParam Long procurementSupplierId,@RequestParam java.util.List<Long> itemIds,@RequestParam(required=false) java.util.List<BigDecimal> requestedQuantities,@RequestParam(defaultValue="false") boolean allowUnlistedSupplier,Model model,RedirectAttributes redirect){if(requestedQuantities==null)return configurationDraft(projectId,procurementSupplierId,itemIds,allowUnlistedSupplier,model,redirect);try{Procurement saved=service.createFromConfiguration(projectId,procurementSupplierId,itemIds,requestedQuantities,allowUnlistedSupplier);redirect.addFlashAttribute("successMessage","Закупка создана");return redirect(projectId,saved.getId());}catch(RuntimeException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());return "redirect:/projects/"+projectId+"/configuration";}}
-    @GetMapping("/{id}") public String details(@PathVariable Long projectId,@PathVariable Long id,Model model){Procurement procurement=service.find(projectId,id);var procurementLines=service.lines(id);var availableItems=projectItems.findByProject(projectId);model.addAttribute("project",procurement.getProject());model.addAttribute("procurement",procurement);model.addAttribute("procurementLines",procurementLines);model.addAttribute("invoices",service.invoices(id));model.addAttribute("status",service.status(procurement));model.addAttribute("newLine",new ProcurementLine());model.addAttribute("projectItems",availableItems);model.addAttribute("remainingToPlan",availableItems.stream().collect(Collectors.toMap(ProjectItem::getId,item->item.getRequiredQuantity().subtract(service.progress(item).plannedQuantity()).max(BigDecimal.ZERO))));model.addAttribute("lineMax",procurementLines.stream().collect(Collectors.toMap(ProcurementLine::getId,service::maxAllowed)));model.addAttribute("lineEditable",procurementLines.stream().collect(Collectors.toMap(ProcurementLine::getId,service::isLineQuantityEditable)));return "procurements/details";}
-    @GetMapping("/{id}/edit") public String editForm(@PathVariable Long projectId,@PathVariable Long id,Model model){model.addAttribute("procurement",service.find(projectId,id));formData(projectId,"Редактирование закупки",model);return "procurements/form";}
-    @PostMapping("/{id}") public String update(@PathVariable Long projectId,@PathVariable Long id,@ModelAttribute Procurement procurement,RedirectAttributes redirect,Model model){try{service.update(projectId,id,procurement);redirect.addFlashAttribute("successMessage","Закупка обновлена");return redirect(projectId,id);}catch(RuntimeException exception){procurement.setId(id);model.addAttribute("errorMessage",exception.getMessage());model.addAttribute("procurement",procurement);formData(projectId,"Редактирование закупки",model);return "procurements/form";}}
-    @PostMapping("/{id}/rfq-sent") public String markRfq(@PathVariable Long projectId,@PathVariable Long id,RedirectAttributes redirect){service.markRfqSent(projectId,id);redirect.addFlashAttribute("successMessage","Запрос отмечен как отправленный");return redirect(projectId,id);}
-    @PostMapping("/{id}/delete") public String delete(@PathVariable Long projectId,@PathVariable Long id,RedirectAttributes redirect){try{service.delete(projectId,id);redirect.addFlashAttribute("successMessage","Закупка удалена");return "redirect:/projects/"+projectId+"/procurements";}catch(RuntimeException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());return redirect(projectId,id);}}
-    @PostMapping("/delete-selected") public String deleteSelected(@PathVariable Long projectId,@RequestParam(required=false) java.util.List<Long> procurementIds,RedirectAttributes redirect){if(procurementIds==null||procurementIds.isEmpty()){redirect.addFlashAttribute("errorMessage","Выберите закупки для удаления");return "redirect:/projects/"+projectId+"/procurements";}int deleted=0;java.util.List<String> errors=new java.util.ArrayList<>();for(Long id:procurementIds){try{service.delete(projectId,id);deleted++;}catch(RuntimeException exception){errors.add(exception.getMessage());}}if(deleted>0)redirect.addFlashAttribute("successMessage","Удалено закупок: "+deleted);if(!errors.isEmpty())redirect.addFlashAttribute("errorMessage",String.join("; ",errors));return "redirect:/projects/"+projectId+"/procurements";}
-    @PostMapping("/{id}/lines") public String addLine(@PathVariable Long projectId,@PathVariable Long id,@ModelAttribute ProcurementLine line,RedirectAttributes redirect){try{service.addLine(projectId,id,line);redirect.addFlashAttribute("successMessage","Позиция добавлена в закупку");}catch(RuntimeException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());}return redirect(projectId,id);}
-    @PostMapping("/{id}/lines/{lineId}/quantity") public String updateLineQuantity(@PathVariable Long projectId,@PathVariable Long id,@PathVariable Long lineId,@RequestParam BigDecimal requestedQuantity,RedirectAttributes redirect){try{service.updateLineQuantity(projectId,id,lineId,requestedQuantity);redirect.addFlashAttribute("successMessage","Количество обновлено");}catch(RuntimeException exception){redirect.addFlashAttribute("errorMessage",exception.getMessage());}return redirect(projectId,id);}
-    private void formData(Long projectId,String title,Model model){model.addAttribute("project",projects.findById(projectId));model.addAttribute("suppliers",organizations.findSuppliers());model.addAttribute("pageTitle",title);}
-    private String redirect(Long projectId,Long id){return "redirect:/projects/"+projectId+"/procurements/"+id;}
+
+    private final ProcurementService service;
+    private final ProjectService projects;
+    private final ProjectItemService projectItems;
+    private final OrganizationService organizations;
+
+    public ProcurementController(
+            ProcurementService service,
+            ProjectService projects,
+            ProjectItemService projectItems,
+            OrganizationService organizations) {
+        this.service = service;
+        this.projects = projects;
+        this.projectItems = projectItems;
+        this.organizations = organizations;
+    }
+
+    @GetMapping
+    public String list(@PathVariable Long projectId, Model model) {
+        var procurements = service.findByProject(projectId);
+        model.addAttribute("project", projects.findById(projectId));
+        model.addAttribute("procurements", procurements);
+        model.addAttribute("lineCounts",
+                procurements.stream().collect(Collectors.toMap(Procurement::getId, p -> service.lineCount(p.getId()))));
+        model.addAttribute("invoiceCounts",
+                procurements.stream().collect(Collectors.toMap(Procurement::getId, p -> service.invoiceCount(p.getId()))));
+        model.addAttribute("statuses", procurements.stream().collect(Collectors.toMap(Procurement::getId, service::status)));
+        return "procurements/list";
+    }
+
+    @GetMapping("/new")
+    public String createForm(@PathVariable Long projectId, Model model) {
+        model.addAttribute("procurement", new Procurement());
+        formData(projectId, "Новая закупка", model);
+        return "procurements/form";
+    }
+
+    @PostMapping
+    public String create(@PathVariable Long projectId, @ModelAttribute Procurement procurement, RedirectAttributes redirect, Model model) {
+        try {
+            Procurement saved = service.create(projectId, procurement);
+            redirect.addFlashAttribute("successMessage", "Закупка создана");
+            return redirect(projectId, saved.getId());
+        } catch (RuntimeException exception) {
+            model.addAttribute("errorMessage", exception.getMessage());
+            model.addAttribute("procurement", procurement);
+            formData(projectId, "Новая закупка", model);
+            return "procurements/form";
+        }
+    }
+
+    @GetMapping("/from-configuration")
+    public String configurationDraft(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) Long procurementSupplierId,
+            @RequestParam(required = false) java.util.List<Long> itemIds,
+            @RequestParam(defaultValue = "false") boolean allowUnlistedSupplier,
+            Model model,
+            RedirectAttributes redirect) {
+        try {
+            var selected = service.selectedForConfiguration(projectId, procurementSupplierId, itemIds, allowUnlistedSupplier);
+            model.addAttribute("project", projects.findById(projectId));
+            model.addAttribute("supplier", organizations.findById(procurementSupplierId));
+            model.addAttribute("items", selected);
+            model.addAttribute("allowUnlistedSupplier", allowUnlistedSupplier);
+            model.addAttribute("remaining", selected.stream().collect(Collectors.toMap(ProjectItem::getId,
+                    item -> item.getRequiredQuantity().subtract(service.progress(item).plannedQuantity()))));
+            return "procurements/configuration-draft";
+        } catch (RuntimeException exception) {
+            redirect.addFlashAttribute("errorMessage", exception.getMessage());
+            return "redirect:/projects/" + projectId + "/configuration";
+        }
+    }
+
+    @PostMapping("/from-configuration")
+    public String createFromConfiguration(
+            @PathVariable Long projectId,
+            @RequestParam Long procurementSupplierId,
+            @RequestParam java.util.List<Long> itemIds,
+            @RequestParam(required = false) java.util.List<BigDecimal> requestedQuantities,
+            @RequestParam(defaultValue = "false") boolean allowUnlistedSupplier,
+            Model model,
+            RedirectAttributes redirect) {
+        if (requestedQuantities == null) {
+            return configurationDraft(projectId, procurementSupplierId, itemIds, allowUnlistedSupplier, model, redirect);
+        }
+        try {
+            Procurement saved = service.createFromConfiguration(projectId, procurementSupplierId, itemIds, requestedQuantities,
+                    allowUnlistedSupplier);
+            redirect.addFlashAttribute("successMessage", "Закупка создана");
+            return redirect(projectId, saved.getId());
+        } catch (RuntimeException exception) {
+            redirect.addFlashAttribute("errorMessage", exception.getMessage());
+            return "redirect:/projects/" + projectId + "/configuration";
+        }
+    }
+
+    @GetMapping("/{id}")
+    public String details(@PathVariable Long projectId, @PathVariable Long id, Model model) {
+        Procurement procurement = service.find(projectId, id);
+        var procurementLines = service.lines(id);
+        var availableItems = projectItems.findByProject(projectId);
+        model.addAttribute("project", procurement.getProject());
+        model.addAttribute("procurement", procurement);
+        model.addAttribute("procurementLines", procurementLines);
+        model.addAttribute("invoices", service.invoices(id));
+        model.addAttribute("status", service.status(procurement));
+        model.addAttribute("newLine", new ProcurementLine());
+        model.addAttribute("projectItems", availableItems);
+        model.addAttribute("remainingToPlan", availableItems.stream().collect(Collectors.toMap(ProjectItem::getId,
+                item -> item.getRequiredQuantity().subtract(service.progress(item).plannedQuantity()).max(BigDecimal.ZERO))));
+        model.addAttribute("lineMax", procurementLines.stream().collect(Collectors.toMap(ProcurementLine::getId, service::maxAllowed)));
+        model.addAttribute("lineEditable",
+                procurementLines.stream().collect(Collectors.toMap(ProcurementLine::getId, service::isLineQuantityEditable)));
+        return "procurements/details";
+    }
+
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long projectId, @PathVariable Long id, Model model) {
+        model.addAttribute("procurement", service.find(projectId, id));
+        formData(projectId, "Редактирование закупки", model);
+        return "procurements/form";
+    }
+
+    @PostMapping("/{id}")
+    public String update(
+            @PathVariable Long projectId,
+            @PathVariable Long id,
+            @ModelAttribute Procurement procurement,
+            RedirectAttributes redirect,
+            Model model) {
+        try {
+            service.update(projectId, id, procurement);
+            redirect.addFlashAttribute("successMessage", "Закупка обновлена");
+            return redirect(projectId, id);
+        } catch (RuntimeException exception) {
+            procurement.setId(id);
+            model.addAttribute("errorMessage", exception.getMessage());
+            model.addAttribute("procurement", procurement);
+            formData(projectId, "Редактирование закупки", model);
+            return "procurements/form";
+        }
+    }
+
+    @PostMapping("/{id}/rfq-sent")
+    public String markRfq(@PathVariable Long projectId, @PathVariable Long id, RedirectAttributes redirect) {
+        service.markRfqSent(projectId, id);
+        redirect.addFlashAttribute("successMessage", "Запрос отмечен как отправленный");
+        return redirect(projectId, id);
+    }
+
+    @PostMapping("/{id}/delete")
+    public String delete(@PathVariable Long projectId, @PathVariable Long id, RedirectAttributes redirect) {
+        try {
+            service.delete(projectId, id);
+            redirect.addFlashAttribute("successMessage", "Закупка удалена");
+            return "redirect:/projects/" + projectId + "/procurements";
+        } catch (RuntimeException exception) {
+            redirect.addFlashAttribute("errorMessage", exception.getMessage());
+            return redirect(projectId, id);
+        }
+    }
+
+    @PostMapping("/delete-selected")
+    public String deleteSelected(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) java.util.List<Long> procurementIds,
+            RedirectAttributes redirect) {
+        if (procurementIds == null || procurementIds.isEmpty()) {
+            redirect.addFlashAttribute("errorMessage", "Выберите закупки для удаления");
+            return "redirect:/projects/" + projectId + "/procurements";
+        }
+        int deleted = 0;
+        java.util.List<String> errors = new java.util.ArrayList<>();
+        for (Long id : procurementIds) {
+            try {
+                service.delete(projectId, id);
+                deleted++;
+            } catch (RuntimeException exception) {
+                errors.add(exception.getMessage());
+            }
+        }
+        if (deleted > 0) {
+            redirect.addFlashAttribute("successMessage", "Удалено закупок: " + deleted);
+        }
+        if (!errors.isEmpty()) {
+            redirect.addFlashAttribute("errorMessage", String.join("; ", errors));
+        }
+        return "redirect:/projects/" + projectId + "/procurements";
+    }
+
+    @PostMapping("/{id}/lines")
+    public String addLine(
+            @PathVariable Long projectId,
+            @PathVariable Long id,
+            @ModelAttribute ProcurementLine line,
+            RedirectAttributes redirect) {
+        try {
+            service.addLine(projectId, id, line);
+            redirect.addFlashAttribute("successMessage", "Позиция добавлена в закупку");
+        } catch (RuntimeException exception) {
+            redirect.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return redirect(projectId, id);
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/quantity")
+    public String updateLineQuantity(
+            @PathVariable Long projectId,
+            @PathVariable Long id,
+            @PathVariable Long lineId,
+            @RequestParam BigDecimal requestedQuantity,
+            RedirectAttributes redirect) {
+        try {
+            service.updateLineQuantity(projectId, id, lineId, requestedQuantity);
+            redirect.addFlashAttribute("successMessage", "Количество обновлено");
+        } catch (RuntimeException exception) {
+            redirect.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return redirect(projectId, id);
+    }
+
+    private void formData(Long projectId, String title, Model model) {
+        model.addAttribute("project", projects.findById(projectId));
+        model.addAttribute("suppliers", organizations.findSuppliers());
+        model.addAttribute("pageTitle", title);
+    }
+
+    private String redirect(Long projectId, Long id) {
+        return "redirect:/projects/" + projectId + "/procurements/" + id;
+    }
 }

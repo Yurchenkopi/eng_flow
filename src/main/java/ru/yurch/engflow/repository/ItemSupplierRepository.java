@@ -1,11 +1,10 @@
 package ru.yurch.engflow.repository;
 
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.yurch.engflow.model.ItemSupplier;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface ItemSupplierRepository extends JpaRepository<ItemSupplier, Long> {
 

@@ -1,11 +1,123 @@
 package ru.yurch.engflow.service;
-import org.junit.jupiter.api.Test;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.boot.test.context.SpringBootTest;import org.springframework.test.context.ActiveProfiles;import org.springframework.transaction.annotation.Transactional;import ru.yurch.engflow.model.*;import ru.yurch.engflow.repository.*;import java.util.Set;import static org.assertj.core.api.Assertions.*;
-@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.NONE) @ActiveProfiles("test") @Transactional
-class ItemSupplierServiceTest{
- @Autowired ItemSupplierService service;@Autowired CatalogItemRepository catalogItems;@Autowired OrganizationRepository organizations;@Autowired MeasurementUnitRepository units;@Autowired jakarta.persistence.EntityManager entityManager;
- @Test void managesMultipleSuppliersAndPreservesRelatedEntities(){CatalogItem item=item();Organization first=organization("Поставщик 1",Set.of(OrganizationRole.SUPPLIER));Organization second=organization("Поставщик 2",Set.of(OrganizationRole.SUPPLIER));ItemSupplier relation=new ItemSupplier();relation.setSupplier(first);relation=service.create(item.getId(),relation);ItemSupplier another=new ItemSupplier();another.setSupplier(second);service.create(item.getId(),another);assertThat(service.findByCatalogItem(item.getId())).hasSize(2);assertThat(relation.getSupplierArticle()).isNull();service.delete(item.getId(),relation.getId());assertThat(catalogItems.existsById(item.getId())).isTrue();assertThat(organizations.existsById(first.getId())).isTrue();}
- @Test void supplierSummaryUsesShortNameAndListsEverySupplier(){CatalogItem item=item();Organization first=organization("Полное имя",Set.of(OrganizationRole.SUPPLIER));first.setShortName("Краткое имя");organizations.save(first);ItemSupplier relation=new ItemSupplier();relation.setSupplier(first);service.create(item.getId(),relation);entityManager.flush();entityManager.clear();assertThat(catalogItems.findById(item.getId()).orElseThrow().getSupplierSummary()).isEqualTo("Краткое имя");Organization second=organization("Второй",Set.of(OrganizationRole.SUPPLIER));ItemSupplier another=new ItemSupplier();another.setSupplier(second);service.create(item.getId(),another);entityManager.flush();entityManager.clear();assertThat(catalogItems.findById(item.getId()).orElseThrow().getSupplierNames()).containsExactly("Второй","Краткое имя");}
- @Test void updatesSupplierArticleAndNotes(){CatalogItem item=item();Organization supplier=organization("Поставщик",Set.of(OrganizationRole.SUPPLIER));ItemSupplier relation=new ItemSupplier();relation.setSupplier(supplier);relation=service.create(item.getId(),relation);ItemSupplier changes=new ItemSupplier();changes.setSupplierArticle("  A-42  ");changes.setNotes("  основной вариант  ");service.update(item.getId(),relation.getId(),changes);entityManager.flush();entityManager.clear();ItemSupplier loaded=service.find(item.getId(),relation.getId());assertThat(loaded.getSupplier().getName()).isEqualTo("Поставщик");assertThat(loaded.getSupplierArticle()).isEqualTo("A-42");assertThat(loaded.getNotes()).isEqualTo("основной вариант");}
- @Test void rejectsDuplicateAndCustomerOnlyOrganization(){CatalogItem item=item();Organization supplier=organization("Поставщик",Set.of(OrganizationRole.SUPPLIER));ItemSupplier first=new ItemSupplier();first.setSupplier(supplier);service.create(item.getId(),first);ItemSupplier duplicate=new ItemSupplier();duplicate.setSupplier(supplier);assertThatThrownBy(()->service.create(item.getId(),duplicate)).hasMessageContaining("уже добавлен");Organization customer=organization("Заказчик",Set.of(OrganizationRole.CUSTOMER));ItemSupplier invalid=new ItemSupplier();invalid.setSupplier(customer);assertThatThrownBy(()->service.create(item.getId(),invalid)).hasMessageContaining("роли поставщика");}
- private CatalogItem item(){CatalogItem value=new CatalogItem();value.setName("Изделие");value.setMeasurementUnit(units.findByName("шт.").orElseThrow());return catalogItems.save(value);}private Organization organization(String name,Set<OrganizationRole> roles){Organization value=new Organization();value.setName(name);value.setRoles(roles);return organizations.save(value);}
+
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yurch.engflow.model.CatalogItem;
+import ru.yurch.engflow.model.ItemSupplier;
+import ru.yurch.engflow.model.Organization;
+import ru.yurch.engflow.model.OrganizationRole;
+import ru.yurch.engflow.repository.CatalogItemRepository;
+import ru.yurch.engflow.repository.MeasurementUnitRepository;
+import ru.yurch.engflow.repository.OrganizationRepository;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
+@Transactional
+class ItemSupplierServiceTest {
+
+    @Autowired
+    ItemSupplierService service;
+    @Autowired
+    CatalogItemRepository catalogItems;
+    @Autowired
+    OrganizationRepository organizations;
+    @Autowired
+    MeasurementUnitRepository units;
+    @Autowired
+    jakarta.persistence.EntityManager entityManager;
+
+    @Test
+    void managesMultipleSuppliersAndPreservesRelatedEntities() {
+        CatalogItem item = item();
+        Organization first = organization("Поставщик 1", Set.of(OrganizationRole.SUPPLIER));
+        Organization second = organization("Поставщик 2", Set.of(OrganizationRole.SUPPLIER));
+        ItemSupplier relation = new ItemSupplier();
+        relation.setSupplier(first);
+        relation = service.create(item.getId(), relation);
+        ItemSupplier another = new ItemSupplier();
+        another.setSupplier(second);
+        service.create(item.getId(), another);
+        assertThat(service.findByCatalogItem(item.getId())).hasSize(2);
+        assertThat(relation.getSupplierArticle()).isNull();
+        service.delete(item.getId(), relation.getId());
+        assertThat(catalogItems.existsById(item.getId())).isTrue();
+        assertThat(organizations.existsById(first.getId())).isTrue();
+    }
+
+    @Test
+    void supplierSummaryUsesShortNameAndListsEverySupplier() {
+        CatalogItem item = item();
+        Organization first = organization("Полное имя", Set.of(OrganizationRole.SUPPLIER));
+        first.setShortName("Краткое имя");
+        organizations.save(first);
+        ItemSupplier relation = new ItemSupplier();
+        relation.setSupplier(first);
+        service.create(item.getId(), relation);
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(catalogItems.findById(item.getId()).orElseThrow().getSupplierSummary()).isEqualTo("Краткое имя");
+        Organization second = organization("Второй", Set.of(OrganizationRole.SUPPLIER));
+        ItemSupplier another = new ItemSupplier();
+        another.setSupplier(second);
+        service.create(item.getId(), another);
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(catalogItems.findById(item.getId()).orElseThrow().getSupplierNames()).containsExactly("Второй", "Краткое имя");
+    }
+
+    @Test
+    void updatesSupplierArticleAndNotes() {
+        CatalogItem item = item();
+        Organization supplier = organization("Поставщик", Set.of(OrganizationRole.SUPPLIER));
+        ItemSupplier relation = new ItemSupplier();
+        relation.setSupplier(supplier);
+        relation = service.create(item.getId(), relation);
+        ItemSupplier changes = new ItemSupplier();
+        changes.setSupplierArticle("  A-42  ");
+        changes.setNotes("  основной вариант  ");
+        service.update(item.getId(), relation.getId(), changes);
+        entityManager.flush();
+        entityManager.clear();
+        ItemSupplier loaded = service.find(item.getId(), relation.getId());
+        assertThat(loaded.getSupplier().getName()).isEqualTo("Поставщик");
+        assertThat(loaded.getSupplierArticle()).isEqualTo("A-42");
+        assertThat(loaded.getNotes()).isEqualTo("основной вариант");
+    }
+
+    @Test
+    void rejectsDuplicateAndCustomerOnlyOrganization() {
+        CatalogItem item = item();
+        Organization supplier = organization("Поставщик", Set.of(OrganizationRole.SUPPLIER));
+        ItemSupplier first = new ItemSupplier();
+        first.setSupplier(supplier);
+        service.create(item.getId(), first);
+        ItemSupplier duplicate = new ItemSupplier();
+        duplicate.setSupplier(supplier);
+        assertThatThrownBy(() -> service.create(item.getId(), duplicate)).hasMessageContaining("уже добавлен");
+        Organization customer = organization("Заказчик", Set.of(OrganizationRole.CUSTOMER));
+        ItemSupplier invalid = new ItemSupplier();
+        invalid.setSupplier(customer);
+        assertThatThrownBy(() -> service.create(item.getId(), invalid)).hasMessageContaining("роли поставщика");
+    }
+
+    private CatalogItem item() {
+        CatalogItem value = new CatalogItem();
+        value.setName("Изделие");
+        value.setMeasurementUnit(units.findByName("шт.").orElseThrow());
+        return catalogItems.save(value);
+    }
+
+    private Organization organization(String name, Set<OrganizationRole> roles) {
+        Organization value = new Organization();
+        value.setName(name);
+        value.setRoles(roles);
+        return organizations.save(value);
+    }
 }

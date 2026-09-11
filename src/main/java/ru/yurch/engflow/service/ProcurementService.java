@@ -1,40 +1,326 @@
 package ru.yurch.engflow.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import ru.yurch.engflow.model.*;
-import ru.yurch.engflow.repository.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.yurch.engflow.model.Organization;
+import ru.yurch.engflow.model.OrganizationRole;
+import ru.yurch.engflow.model.Procurement;
+import ru.yurch.engflow.model.ProcurementLine;
+import ru.yurch.engflow.model.ProcurementStatus;
+import ru.yurch.engflow.model.ProjectItem;
+import ru.yurch.engflow.model.SupplierInvoice;
+import ru.yurch.engflow.repository.ProcurementLineRepository;
+import ru.yurch.engflow.repository.ProcurementRepository;
+import ru.yurch.engflow.repository.ProjectRepository;
+import ru.yurch.engflow.repository.SupplierInvoiceLineRepository;
+import ru.yurch.engflow.repository.SupplierInvoiceRepository;
 
-@Service @Transactional(readOnly=true)
+@Service
+@Transactional(readOnly = true)
 public class ProcurementService {
-    private final ProcurementRepository procurements;private final ProcurementLineRepository lines;private final SupplierInvoiceRepository invoices;private final SupplierInvoiceLineRepository invoiceLines;private final ProjectService projects;private final ProjectItemService projectItems;private final OrganizationService organizations;private final ProjectRepository projectRepository;
-    public ProcurementService(ProcurementRepository procurements,ProcurementLineRepository lines,SupplierInvoiceRepository invoices,SupplierInvoiceLineRepository invoiceLines,ProjectService projects,ProjectItemService projectItems,OrganizationService organizations,ProjectRepository projectRepository){this.procurements=procurements;this.lines=lines;this.invoices=invoices;this.invoiceLines=invoiceLines;this.projects=projects;this.projectItems=projectItems;this.organizations=organizations;this.projectRepository=projectRepository;}
-    public List<Procurement> findByProject(Long projectId){projects.findById(projectId);return procurements.findActiveByProjectId(projectId);}
-    public Procurement find(Long projectId,Long id){return procurements.findActiveByIdAndProjectId(id,projectId).orElseThrow(()->new IllegalArgumentException("Закупка не найдена"));}
-    public List<ProcurementLine> lines(Long procurementId){return lines.findByProcurementIdOrderByIdAsc(procurementId);}
-    public List<SupplierInvoice> invoices(Long procurementId){return invoices.findByProcurementIdOrderByInvoiceDateDescIdDesc(procurementId);}
-    public long lineCount(Long procurementId){return lines.countByProcurementId(procurementId);}
-    public long invoiceCount(Long procurementId){return invoices.countByProcurementId(procurementId);}
-    @Transactional public Procurement create(Long projectId,Procurement value){value.setId(null);value.setProject(projectRepository.findByIdForUpdate(projectId).orElseThrow(()->new IllegalArgumentException("Проект не найден: "+projectId)));Organization supplier=requireSupplier(value.getSupplier());value.setSupplier(supplier);value.setSequenceNumber(procurements.maxSequenceNumber(projectId,supplier.getId())+1);value.setNotes(trim(value.getNotes()));return procurements.save(value);}
-    @Transactional public Procurement createFromConfiguration(Long projectId,Long supplierId,Collection<Long> projectItemIds,boolean allowUnlistedSupplier){if(projectItemIds==null||projectItemIds.isEmpty())throw new IllegalArgumentException("Выберите хотя бы одну позицию комплектации");Organization supplier=requireSupplier(reference(supplierId));List<ProjectItem> selected=new ArrayList<>();for(Long itemId:new LinkedHashSet<>(projectItemIds))selected.add(projectItems.findByProjectAndId(projectId,itemId));List<String> unlisted=selected.stream().filter(item->item.getCatalogItem().getItemSuppliers().stream().noneMatch(relation->relation.getSupplier().getId().equals(supplierId))).map(item->item.getCatalogItem().getName()).toList();if(!unlisted.isEmpty()&&!allowUnlistedSupplier)throw new IllegalArgumentException("У выбранного поставщика не указана связь с позициями: "+String.join(", ",unlisted)+". Подтвердите осознанное продолжение.");Procurement value=new Procurement();value.setSupplier(supplier);Procurement saved=create(projectId,value);for(ProjectItem item:selected){BigDecimal remaining=item.getRequiredQuantity().subtract(lines.requestedByProjectItem(item.getId()));if(remaining.signum()<=0)throw new IllegalArgumentException("Позиция «"+item.getCatalogItem().getName()+"» уже полностью добавлена в закупки");ProcurementLine line=new ProcurementLine();line.setProjectItem(item);line.setRequestedQuantity(remaining);addLine(projectId,saved.getId(),line);}return saved;}
-    public List<ProjectItem> selectedForConfiguration(Long projectId,Long supplierId,Collection<Long> projectItemIds,boolean allowUnlistedSupplier){if(projectItemIds==null||projectItemIds.isEmpty())throw new IllegalArgumentException("Выберите хотя бы одну позицию комплектации");requireSupplier(reference(supplierId));List<ProjectItem> selected=new ArrayList<>();for(Long itemId:new LinkedHashSet<>(projectItemIds))selected.add(projectItems.findByProjectAndId(projectId,itemId));List<String> unlisted=selected.stream().filter(item->item.getCatalogItem().getItemSuppliers().stream().noneMatch(relation->relation.getSupplier().getId().equals(supplierId))).map(item->item.getCatalogItem().getName()).toList();if(!unlisted.isEmpty()&&!allowUnlistedSupplier)throw new IllegalArgumentException("У выбранного поставщика не указана связь с позициями: "+String.join(", ",unlisted)+". Подтвердите осознанное продолжение.");return selected;}
-    @Transactional public Procurement createFromConfiguration(Long projectId,Long supplierId,List<Long> projectItemIds,List<BigDecimal> quantities,boolean allowUnlistedSupplier){List<ProjectItem> selected=selectedForConfiguration(projectId,supplierId,projectItemIds,allowUnlistedSupplier);if(quantities==null||quantities.size()!=selected.size())throw new IllegalArgumentException("Укажите количество для каждой позиции");Procurement value=new Procurement();value.setSupplier(reference(supplierId));Procurement saved=create(projectId,value);for(int i=0;i<selected.size();i++){ProcurementLine line=new ProcurementLine();line.setProjectItem(selected.get(i));line.setRequestedQuantity(quantities.get(i));addLine(projectId,saved.getId(),line);}return saved;}
-    @Transactional public Procurement update(Long projectId,Long id,Procurement value){Procurement current=find(projectId,id);current.setSupplier(requireSupplier(value.getSupplier()));current.setNotes(trim(value.getNotes()));return procurements.save(current);}
-    @Transactional public void markRfqSent(Long projectId,Long id){find(projectId,id).setRfqSentAt(Instant.now());}
-    @Transactional public ProcurementLine addLine(Long projectId,Long procurementId,ProcurementLine value){Procurement procurement=find(projectId,procurementId);if(value.getProjectItem()==null||value.getProjectItem().getId()==null)throw new IllegalArgumentException("Выберите позицию комплектации");ProjectItem item=projectItems.findByProjectAndId(projectId,value.getProjectItem().getId());positive(value.getRequestedQuantity(),"Запрашиваемое количество");validateStep(value.getRequestedQuantity(),item);if(lines.existsByProcurementIdAndProjectItemId(procurementId,item.getId()))throw new IllegalArgumentException("Позиция уже добавлена в эту закупку");BigDecimal remaining=item.getRequiredQuantity().subtract(lines.requestedByProjectItem(item.getId()));if(value.getRequestedQuantity().compareTo(remaining)>0)throw new IllegalArgumentException("Количество превышает остаток к запросу: "+remaining.stripTrailingZeros().toPlainString());value.setId(null);value.setProcurement(procurement);value.setProjectItem(item);value.setNotes(trim(value.getNotes()));return lines.save(value);}
-    @Transactional public ProcurementLine updateLineQuantity(Long projectId,Long procurementId,Long lineId,BigDecimal requestedQuantity){Procurement procurement=find(projectId,procurementId);ProcurementLine line=lines.findByIdAndProcurementId(lineId,procurementId).orElseThrow(()->new IllegalArgumentException("Позиция закупки не найдена"));if(procurement.getRfqSentAt()!=null||invoiceLines.existsByProcurementLineId(lineId))throw new IllegalStateException("Количество нельзя изменить после отправки запроса или добавления позиции в счет");positive(requestedQuantity,"Запрашиваемое количество");validateStep(requestedQuantity,line.getProjectItem());Long projectItemId=line.getProjectItem().getId();BigDecimal otherPlanned=lines.requestedByProjectItem(projectItemId).subtract(line.getRequestedQuantity());BigDecimal maxAllowed=projectItems.requiredQuantity(projectItemId).subtract(otherPlanned);if(requestedQuantity.compareTo(maxAllowed)>0)throw new IllegalArgumentException("Количество превышает допустимый остаток: "+maxAllowed.stripTrailingZeros().toPlainString());line.setRequestedQuantity(requestedQuantity);return lines.save(line);}
-    public BigDecimal maxAllowed(ProcurementLine line){Long projectItemId=line.getProjectItem().getId();return projectItems.requiredQuantity(projectItemId).subtract(lines.requestedByProjectItem(projectItemId).subtract(line.getRequestedQuantity()));}
-    public boolean isLineQuantityEditable(ProcurementLine line){return lines.existsByIdAndProcurementRfqSentAtIsNull(line.getId())&&!invoiceLines.existsByProcurementLineId(line.getId());}
-    public ProcurementProgress progress(ProjectItem item){BigDecimal planned=lines.requestedByProjectItem(item.getId()),requested=lines.requestedSentByProjectItem(item.getId()),ordered=invoiceLines.orderedByProjectItem(item.getId()),required=item.getRequiredQuantity();ProcurementStatus status;if(ordered.signum()>0)status=ordered.compareTo(required)>=0?ProcurementStatus.ORDERED:ProcurementStatus.PARTIALLY_ORDERED;else if(requested.signum()>0)status=requested.compareTo(required)>=0?ProcurementStatus.REQUESTED:ProcurementStatus.PARTIALLY_REQUESTED;else if(planned.signum()>0)status=ProcurementStatus.PLANNED;else status=ProcurementStatus.NOT_PLANNED;return new ProcurementProgress(status,planned,requested,ordered,required);}
-    public Map<Long,ProcurementProgress> progressFor(Collection<ProjectItem> items){Map<Long,ProcurementProgress> result=new LinkedHashMap<>();items.forEach(item->result.put(item.getId(),progress(item)));return result;}
-    public ProcurementStatus status(Procurement value){BigDecimal ordered=invoiceLines.orderedByProcurement(value.getId()),planned=lines.requestedByProcurement(value.getId());if(ordered.signum()>0)return ordered.compareTo(planned)>=0?ProcurementStatus.ORDERED:ProcurementStatus.PARTIALLY_ORDERED;return value.getRfqSentAt()!=null&&planned.signum()>0?ProcurementStatus.REQUESTED:planned.signum()>0?ProcurementStatus.PLANNED:ProcurementStatus.NOT_PLANNED;}
-    @Transactional public void delete(Long projectId,Long id){Procurement procurement=find(projectId,id);if(invoices.countByProcurementId(id)>0)throw new IllegalStateException("Закупку нельзя удалить: к ней уже добавлен счет поставщика");lines.deleteByProcurementId(id);procurement.setDeletedAt(Instant.now());}
-    private Organization reference(Long id){Organization value=new Organization();value.setId(id);return value;}
-    private Organization requireSupplier(Organization reference){if(reference==null||reference.getId()==null)throw new IllegalArgumentException("Выберите поставщика");Organization supplier=organizations.findById(reference.getId());if(!supplier.getRoles().contains(OrganizationRole.SUPPLIER))throw new IllegalArgumentException("Организация не имеет роли поставщика");return supplier;}
-    private void positive(BigDecimal value,String label){if(value==null||value.signum()<=0)throw new IllegalArgumentException(label+" должно быть положительным");}
-    private void validateStep(BigDecimal value,ProjectItem item){BigDecimal step=item.getCatalogItem().getQuantityStep();if(value.remainder(step).signum()!=0)throw new IllegalArgumentException("Количество должно изменяться с шагом "+step.stripTrailingZeros().toPlainString()+" для единицы «"+item.getCatalogItem().getUnit()+"»");}
-    private String trim(String value){return value==null||value.isBlank()?null:value.trim();}
+
+    private final ProcurementRepository procurements;
+    private final ProcurementLineRepository lines;
+    private final SupplierInvoiceRepository invoices;
+    private final SupplierInvoiceLineRepository invoiceLines;
+    private final ProjectService projects;
+    private final ProjectItemService projectItems;
+    private final OrganizationService organizations;
+    private final ProjectRepository projectRepository;
+
+    public ProcurementService(
+            ProcurementRepository procurements,
+            ProcurementLineRepository lines,
+            SupplierInvoiceRepository invoices,
+            SupplierInvoiceLineRepository invoiceLines,
+            ProjectService projects,
+            ProjectItemService projectItems,
+            OrganizationService organizations,
+            ProjectRepository projectRepository) {
+        this.procurements = procurements;
+        this.lines = lines;
+        this.invoices = invoices;
+        this.invoiceLines = invoiceLines;
+        this.projects = projects;
+        this.projectItems = projectItems;
+        this.organizations = organizations;
+        this.projectRepository = projectRepository;
+    }
+
+    public List<Procurement> findByProject(Long projectId) {
+        projects.findById(projectId);
+        return procurements.findActiveByProjectId(projectId);
+    }
+
+    public Procurement find(Long projectId, Long id) {
+        return procurements.findActiveByIdAndProjectId(id, projectId).orElseThrow(() -> new IllegalArgumentException("Закупка не найдена"));
+    }
+
+    public List<ProcurementLine> lines(Long procurementId) {
+        return lines.findByProcurementIdOrderByIdAsc(procurementId);
+    }
+
+    public List<SupplierInvoice> invoices(Long procurementId) {
+        return invoices.findByProcurementIdOrderByInvoiceDateDescIdDesc(procurementId);
+    }
+
+    public long lineCount(Long procurementId) {
+        return lines.countByProcurementId(procurementId);
+    }
+
+    public long invoiceCount(Long procurementId) {
+        return invoices.countByProcurementId(procurementId);
+    }
+
+    @Transactional
+    public Procurement create(Long projectId, Procurement value) {
+        value.setId(null);
+        value.setProject(projectRepository.findByIdForUpdate(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Проект не найден: " + projectId)));
+        Organization supplier = requireSupplier(value.getSupplier());
+        value.setSupplier(supplier);
+        value.setSequenceNumber(procurements.maxSequenceNumber(projectId, supplier.getId()) + 1);
+        value.setNotes(trim(value.getNotes()));
+        return procurements.save(value);
+    }
+
+    @Transactional
+    public Procurement createFromConfiguration(
+            Long projectId,
+            Long supplierId,
+            Collection<Long> projectItemIds,
+            boolean allowUnlistedSupplier) {
+        if (projectItemIds == null || projectItemIds.isEmpty()) {
+            throw new IllegalArgumentException("Выберите хотя бы одну позицию комплектации");
+        }
+        Organization supplier = requireSupplier(reference(supplierId));
+        List<ProjectItem> selected = new ArrayList<>();
+        for (Long itemId : new LinkedHashSet<>(projectItemIds)) {
+            selected.add(projectItems.findByProjectAndId(projectId, itemId));
+        }
+        List<String> unlisted = selected.stream()
+                .filter(item -> item.getCatalogItem().getItemSuppliers().stream()
+                        .noneMatch(relation -> relation.getSupplier().getId().equals(supplierId)))
+                .map(item -> item.getCatalogItem().getName()).toList();
+        if (!unlisted.isEmpty() && !allowUnlistedSupplier) {
+            throw new IllegalArgumentException("У выбранного поставщика не указана связь с позициями: " + String.join(", ", unlisted)
+                    + ". Подтвердите осознанное продолжение.");
+        }
+        Procurement value = new Procurement();
+        value.setSupplier(supplier);
+        Procurement saved = create(projectId, value);
+        for (ProjectItem item : selected) {
+            BigDecimal remaining = item.getRequiredQuantity().subtract(lines.requestedByProjectItem(item.getId()));
+            if (remaining.signum() <= 0) {
+                throw new IllegalArgumentException("Позиция «" + item.getCatalogItem().getName() + "» уже полностью добавлена в закупки");
+            }
+            ProcurementLine line = new ProcurementLine();
+            line.setProjectItem(item);
+            line.setRequestedQuantity(remaining);
+            addLine(projectId, saved.getId(), line);
+        }
+        return saved;
+    }
+
+    public List<ProjectItem> selectedForConfiguration(
+            Long projectId,
+            Long supplierId,
+            Collection<Long> projectItemIds,
+            boolean allowUnlistedSupplier) {
+        if (projectItemIds == null || projectItemIds.isEmpty()) {
+            throw new IllegalArgumentException("Выберите хотя бы одну позицию комплектации");
+        }
+        requireSupplier(reference(supplierId));
+        List<ProjectItem> selected = new ArrayList<>();
+        for (Long itemId : new LinkedHashSet<>(projectItemIds)) {
+            selected.add(projectItems.findByProjectAndId(projectId, itemId));
+        }
+        List<String> unlisted = selected.stream()
+                .filter(item -> item.getCatalogItem().getItemSuppliers().stream()
+                        .noneMatch(relation -> relation.getSupplier().getId().equals(supplierId)))
+                .map(item -> item.getCatalogItem().getName()).toList();
+        if (!unlisted.isEmpty() && !allowUnlistedSupplier) {
+            throw new IllegalArgumentException("У выбранного поставщика не указана связь с позициями: " + String.join(", ", unlisted)
+                    + ". Подтвердите осознанное продолжение.");
+        }
+        return selected;
+    }
+
+    @Transactional
+    public Procurement createFromConfiguration(
+            Long projectId,
+            Long supplierId,
+            List<Long> projectItemIds,
+            List<BigDecimal> quantities,
+            boolean allowUnlistedSupplier) {
+        List<ProjectItem> selected = selectedForConfiguration(projectId, supplierId, projectItemIds, allowUnlistedSupplier);
+        if (quantities == null || quantities.size() != selected.size()) {
+            throw new IllegalArgumentException("Укажите количество для каждой позиции");
+        }
+        Procurement value = new Procurement();
+        value.setSupplier(reference(supplierId));
+        Procurement saved = create(projectId, value);
+        for (int i = 0; i < selected.size(); i++) {
+            ProcurementLine line = new ProcurementLine();
+            line.setProjectItem(selected.get(i));
+            line.setRequestedQuantity(quantities.get(i));
+            addLine(projectId, saved.getId(), line);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public Procurement update(Long projectId, Long id, Procurement value) {
+        Procurement current = find(projectId, id);
+        current.setSupplier(requireSupplier(value.getSupplier()));
+        current.setNotes(trim(value.getNotes()));
+        return procurements.save(current);
+    }
+
+    @Transactional
+    public void markRfqSent(Long projectId, Long id) {
+        find(projectId, id).setRfqSentAt(Instant.now());
+    }
+
+    @Transactional
+    public ProcurementLine addLine(Long projectId, Long procurementId, ProcurementLine value) {
+        Procurement procurement = find(projectId, procurementId);
+        if (value.getProjectItem() == null || value.getProjectItem().getId() == null) {
+            throw new IllegalArgumentException("Выберите позицию комплектации");
+        }
+        ProjectItem item = projectItems.findByProjectAndId(projectId, value.getProjectItem().getId());
+        positive(value.getRequestedQuantity(), "Запрашиваемое количество");
+        validateStep(value.getRequestedQuantity(), item);
+        if (lines.existsByProcurementIdAndProjectItemId(procurementId, item.getId())) {
+            throw new IllegalArgumentException("Позиция уже добавлена в эту закупку");
+        }
+        BigDecimal remaining = item.getRequiredQuantity().subtract(lines.requestedByProjectItem(item.getId()));
+        if (value.getRequestedQuantity().compareTo(remaining) > 0) {
+            throw new IllegalArgumentException("Количество превышает остаток к запросу: " + remaining.stripTrailingZeros().toPlainString());
+        }
+        value.setId(null);
+        value.setProcurement(procurement);
+        value.setProjectItem(item);
+        value.setNotes(trim(value.getNotes()));
+        return lines.save(value);
+    }
+
+    @Transactional
+    public ProcurementLine updateLineQuantity(Long projectId, Long procurementId, Long lineId, BigDecimal requestedQuantity) {
+        Procurement procurement = find(projectId, procurementId);
+        ProcurementLine line = lines.findByIdAndProcurementId(lineId, procurementId)
+                .orElseThrow(() -> new IllegalArgumentException("Позиция закупки не найдена"));
+        if (procurement.getRfqSentAt() != null || invoiceLines.existsByProcurementLineId(lineId)) {
+            throw new IllegalStateException("Количество нельзя изменить после отправки запроса или добавления позиции в счет");
+        }
+        positive(requestedQuantity, "Запрашиваемое количество");
+        validateStep(requestedQuantity, line.getProjectItem());
+        Long projectItemId = line.getProjectItem().getId();
+        BigDecimal otherPlanned = lines.requestedByProjectItem(projectItemId).subtract(line.getRequestedQuantity());
+        BigDecimal maxAllowed = projectItems.requiredQuantity(projectItemId).subtract(otherPlanned);
+        if (requestedQuantity.compareTo(maxAllowed) > 0) {
+            throw new IllegalArgumentException(
+                    "Количество превышает допустимый остаток: " + maxAllowed.stripTrailingZeros().toPlainString());
+        }
+        line.setRequestedQuantity(requestedQuantity);
+        return lines.save(line);
+    }
+
+    public BigDecimal maxAllowed(ProcurementLine line) {
+        Long projectItemId = line.getProjectItem().getId();
+        return projectItems.requiredQuantity(projectItemId)
+                .subtract(lines.requestedByProjectItem(projectItemId).subtract(line.getRequestedQuantity()));
+    }
+
+    public boolean isLineQuantityEditable(ProcurementLine line) {
+        return lines.existsByIdAndProcurementRfqSentAtIsNull(line.getId()) && !invoiceLines.existsByProcurementLineId(line.getId());
+    }
+
+    public ProcurementProgress progress(ProjectItem item) {
+        BigDecimal planned = lines.requestedByProjectItem(item.getId());
+        BigDecimal requested = lines.requestedSentByProjectItem(item.getId());
+        BigDecimal ordered = invoiceLines.orderedByProjectItem(item.getId());
+        BigDecimal required = item.getRequiredQuantity();
+        ProcurementStatus status;
+        if (ordered.signum() > 0) {
+            status = ordered.compareTo(required) >= 0 ? ProcurementStatus.ORDERED : ProcurementStatus.PARTIALLY_ORDERED;
+        } else if (requested.signum() > 0) {
+            status = requested.compareTo(required) >= 0 ? ProcurementStatus.REQUESTED : ProcurementStatus.PARTIALLY_REQUESTED;
+        } else if (planned.signum() > 0) {
+            status = ProcurementStatus.PLANNED;
+        } else {
+            status = ProcurementStatus.NOT_PLANNED;
+        }
+        return new ProcurementProgress(status, planned, requested, ordered, required);
+    }
+
+    public Map<Long, ProcurementProgress> progressFor(Collection<ProjectItem> items) {
+        Map<Long, ProcurementProgress> result = new LinkedHashMap<>();
+        items.forEach(item -> result.put(item.getId(), progress(item)));
+        return result;
+    }
+
+    public ProcurementStatus status(Procurement value) {
+        BigDecimal ordered = invoiceLines.orderedByProcurement(value.getId());
+        BigDecimal planned = lines.requestedByProcurement(value.getId());
+        if (ordered.signum() > 0) {
+            return ordered.compareTo(planned) >= 0 ? ProcurementStatus.ORDERED : ProcurementStatus.PARTIALLY_ORDERED;
+        }
+        return value.getRfqSentAt() != null && planned.signum() > 0
+                ? ProcurementStatus.REQUESTED
+                : planned.signum() > 0 ? ProcurementStatus.PLANNED : ProcurementStatus.NOT_PLANNED;
+    }
+
+    @Transactional
+    public void delete(Long projectId, Long id) {
+        Procurement procurement = find(projectId, id);
+        if (invoices.countByProcurementId(id) > 0) {
+            throw new IllegalStateException("Закупку нельзя удалить: к ней уже добавлен счет поставщика");
+        }
+        lines.deleteByProcurementId(id);
+        procurement.setDeletedAt(Instant.now());
+    }
+
+    private Organization reference(Long id) {
+        Organization value = new Organization();
+        value.setId(id);
+        return value;
+    }
+
+    private Organization requireSupplier(Organization reference) {
+        if (reference == null || reference.getId() == null) {
+            throw new IllegalArgumentException("Выберите поставщика");
+        }
+        Organization supplier = organizations.findById(reference.getId());
+        if (!supplier.getRoles().contains(OrganizationRole.SUPPLIER)) {
+            throw new IllegalArgumentException("Организация не имеет роли поставщика");
+        }
+        return supplier;
+    }
+
+    private void positive(BigDecimal value, String label) {
+        if (value == null || value.signum() <= 0) {
+            throw new IllegalArgumentException(label + " должно быть положительным");
+        }
+    }
+
+    private void validateStep(BigDecimal value, ProjectItem item) {
+        BigDecimal step = item.getCatalogItem().getQuantityStep();
+        if (value.remainder(step).signum() != 0) {
+            throw new IllegalArgumentException("Количество должно изменяться с шагом " + step.stripTrailingZeros().toPlainString()
+                    + " для единицы «" + item.getCatalogItem().getUnit() + "»");
+        }
+    }
+
+    private String trim(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
 }

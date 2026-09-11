@@ -1,22 +1,21 @@
 package ru.yurch.engflow.controller;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.ui.ExtendedModelMap;
 import ru.yurch.engflow.model.Project;
 import ru.yurch.engflow.model.ProjectItem;
 import ru.yurch.engflow.model.ProjectItemAllocation;
 import ru.yurch.engflow.model.ProjectSubsection;
+import ru.yurch.engflow.service.OrganizationService;
+import ru.yurch.engflow.service.ProcurementProgress;
+import ru.yurch.engflow.service.ProcurementService;
 import ru.yurch.engflow.service.ProjectAssemblyService;
 import ru.yurch.engflow.service.ProjectItemService;
 import ru.yurch.engflow.service.ProjectService;
-import ru.yurch.engflow.service.ProcurementProgress;
-import ru.yurch.engflow.service.ProcurementService;
-import ru.yurch.engflow.service.OrganizationService;
 import ru.yurch.engflow.service.TransferActService;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -32,7 +31,8 @@ class ProjectConfigurationControllerTest {
         TransferActService transferActs = mock(TransferActService.class);
         ProcurementService procurements = mock(ProcurementService.class);
         OrganizationService organizations = mock(OrganizationService.class);
-        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements,organizations);
+        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,
+                procurements, organizations);
 
         Project project = new Project();
         project.setId(1L);
@@ -47,9 +47,10 @@ class ProjectConfigurationControllerTest {
         when(items.search(1L, null, null, null, "name", "asc")).thenReturn(List.of(item));
         when(transferActs.transferredByProject(1L)).thenReturn(Map.of(
                 10L, new BigDecimal("2"),
-                11L, new BigDecimal("7")
-        ));
-        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(2L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("10"))));
+                11L, new BigDecimal("7")));
+        when(procurements.progressFor(List.of(item)))
+                .thenReturn(Map.of(2L, new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED, BigDecimal.ZERO,
+                        BigDecimal.ZERO, new BigDecimal("10"))));
 
         ExtendedModelMap model = new ExtendedModelMap();
         assertThat(controller.configuration(1L, null, null, null, null, "name", "asc", model))
@@ -69,7 +70,8 @@ class ProjectConfigurationControllerTest {
         TransferActService transferActs = mock(TransferActService.class);
         ProcurementService procurements = mock(ProcurementService.class);
         OrganizationService organizations = mock(OrganizationService.class);
-        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements,organizations);
+        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,
+                procurements, organizations);
 
         ProjectItem item = new ProjectItem();
         item.setId(3L);
@@ -77,7 +79,9 @@ class ProjectConfigurationControllerTest {
         when(items.search(1L, null, null, null, "name", "asc")).thenReturn(List.of(item));
         when(assemblies.findByProject(1L)).thenReturn(List.of());
         when(transferActs.transferredByProject(1L)).thenReturn(Map.of());
-        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(3L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("4"))));
+        when(procurements.progressFor(List.of(item)))
+                .thenReturn(Map.of(3L, new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED, BigDecimal.ZERO,
+                        BigDecimal.ZERO, new BigDecimal("4"))));
 
         ExtendedModelMap model = new ExtendedModelMap();
         controller.configuration(1L, null, null, null, null, "name", "asc", model);

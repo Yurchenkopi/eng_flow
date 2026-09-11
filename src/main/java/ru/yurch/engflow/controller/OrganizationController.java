@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.yurch.engflow.model.Organization;
-import ru.yurch.engflow.service.OrganizationService;
-import ru.yurch.engflow.service.ContactService;
 import ru.yurch.engflow.model.OrganizationRole;
+import ru.yurch.engflow.service.ContactService;
+import ru.yurch.engflow.service.OrganizationService;
 
 @Controller
 @RequestMapping("/organizations")
@@ -22,11 +22,15 @@ public class OrganizationController {
     private final OrganizationService organizationService;
     private final ContactService contactService;
 
-    public OrganizationController(OrganizationService organizationService,ContactService contactService) {
+    public OrganizationController(OrganizationService organizationService, ContactService contactService) {
         this.organizationService = organizationService;
-        this.contactService=contactService;
+        this.contactService = contactService;
     }
-    @ModelAttribute("availableRoles") public OrganizationRole[] roles(){return OrganizationRole.values();}
+
+    @ModelAttribute("availableRoles")
+    public OrganizationRole[] roles() {
+        return OrganizationRole.values();
+    }
 
     @GetMapping
     public String list(Model model) {
@@ -42,10 +46,11 @@ public class OrganizationController {
     }
 
     @PostMapping
-    public String create(@Valid @ModelAttribute Organization organization,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    public String create(
+            @Valid @ModelAttribute Organization organization,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("pageTitle", "Новая организация");
             return "organizations/form";
@@ -58,20 +63,21 @@ public class OrganizationController {
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
         model.addAttribute("organization", organizationService.findById(id));
-        model.addAttribute("contacts",contactService.findByOrganization(id));
+        model.addAttribute("contacts", contactService.findByOrganization(id));
         model.addAttribute("pageTitle", "Редактирование организации");
         return "organizations/form";
     }
 
     @PostMapping("/{id}")
-    public String update(@PathVariable Long id,
-                         @Valid @ModelAttribute Organization organization,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
+    public String update(
+            @PathVariable Long id,
+            @Valid @ModelAttribute Organization organization,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             organization.setId(id);
-            model.addAttribute("contacts",contactService.findByOrganization(id));
+            model.addAttribute("contacts", contactService.findByOrganization(id));
             model.addAttribute("pageTitle", "Редактирование организации");
             return "organizations/form";
         }

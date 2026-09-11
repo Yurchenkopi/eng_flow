@@ -1,5 +1,12 @@
 package ru.yurch.engflow.repository;
+
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.yurch.engflow.model.MeasurementUnit;
-import java.util.List;
-public interface MeasurementUnitRepository extends JpaRepository<MeasurementUnit,Long>{List<MeasurementUnit> findAllByOrderByIdAsc();java.util.Optional<MeasurementUnit> findByName(String name);}
+
+public interface MeasurementUnitRepository extends JpaRepository<MeasurementUnit, Long> {
+
+    List<MeasurementUnit> findAllByOrderByIdAsc();
+
+    java.util.Optional<MeasurementUnit> findByName(String name);
+}

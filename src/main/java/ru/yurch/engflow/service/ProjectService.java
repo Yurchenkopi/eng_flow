@@ -1,12 +1,11 @@
 package ru.yurch.engflow.service;
 
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yurch.engflow.model.Project;
 import ru.yurch.engflow.model.ProjectStatus;
 import ru.yurch.engflow.repository.ProjectRepository;
-
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)

@@ -1,12 +1,11 @@
 package ru.yurch.engflow.service;
 
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yurch.engflow.model.Organization;
-import ru.yurch.engflow.repository.OrganizationRepository;
 import ru.yurch.engflow.model.OrganizationRole;
-
-import java.util.List;
+import ru.yurch.engflow.repository.OrganizationRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -21,8 +20,14 @@ public class OrganizationService {
     public List<Organization> findAll() {
         return organizationRepository.findAll();
     }
-    public List<Organization> findCustomers(){return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.CUSTOMER);}
-    public List<Organization> findSuppliers(){return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.SUPPLIER);}
+
+    public List<Organization> findCustomers() {
+        return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.CUSTOMER);
+    }
+
+    public List<Organization> findSuppliers() {
+        return organizationRepository.findDistinctByRolesContainingOrderByNameAsc(OrganizationRole.SUPPLIER);
+    }
 
     public Organization findById(Long id) {
         return organizationRepository.findById(id)
