@@ -16,6 +16,8 @@ erDiagram
     PROJECT_ASSEMBLY o|--o{ PROJECT_ITEM_ALLOCATION : groups
     CATALOG_ITEM ||--o{ PROJECT_ITEM : requested_as
     CATALOG_ITEM ||--o{ ITEM_SUPPLIER : offered_by
+    CATALOG_ITEM ||--o{ CATALOG_ITEM_ANALOG : first_item
+    CATALOG_ITEM ||--o{ CATALOG_ITEM_ANALOG : second_item
     ORGANIZATION ||--o{ ITEM_SUPPLIER : supplier
     PROJECT ||--o{ PROCUREMENT : has
     ORGANIZATION ||--o{ PROCUREMENT : supplier
@@ -119,6 +121,14 @@ erDiagram
 
 Связи: `CatalogItem 1:N ItemSupplier`; `Organization 1:N ItemSupplier`; вместе — связь `CatalogItem N:M Organization` с атрибутами. Пара `catalogItem + supplier` уникальна; `supplier` обязан иметь роль `SUPPLIER`.
 
+### 7.1. CatalogItemAnalog
+
+**Назначение:** хранит симметричную связь между двумя взаимозаменяемыми позициями каталога.
+
+Поля: `id`, `firstCatalogItem -> CatalogItem`, `secondCatalogItem -> CatalogItem`, `createdAt`.
+
+Правила: пара хранится в каноническом порядке id, поэтому `A-B` и `B-A` являются одной связью; связь с самим собой и повтор пары запрещены. Удаление связи не удаляет изделия. При замене позиции проекта количества перераспределяются отдельно для каждой исходной allocation с сохранением section, subsection, `appliesFor` и notes; идентичная allocation существующей позиции-аналога увеличивается, а второй `ProjectItem` не создается.
+
 Правила: организация выступает поставщиком; будущая рекомендация может опираться на исторически приобретенное количество и не ограничивает ручной выбор.
 
 Tentative decision: пара `catalogItem + supplier` предполагается уникальной.
@@ -188,11 +198,11 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 **Назначение:** закупочный процесс у конкретного поставщика в рамках одного проекта.
 
-Поля: `id`, `project -> Project`, `supplier -> Organization`, `rfqSentAt` (nullable), `notes` (nullable), `createdAt`, `updatedAt`.
+Поля: `id`, `project -> Project`, `supplier -> Organization`, `sequenceNumber`, `rfqSentAt` (nullable), `deletedAt` (nullable), `notes` (nullable), `createdAt`, `updatedAt`.
 
 Связи: `Project 1:N Procurement`; `Organization 1:N Procurement`; `Procurement 1:N ProcurementLine`; `Procurement 1:N SupplierInvoice`.
 
-Правила: supplier обязан иметь роль `SUPPLIER`; один поставщик может иметь несколько Procurement одного проекта; `rfqSentAt != NULL` фиксирует факт отправки запроса без email-автоматизации.
+Правила: supplier обязан иметь роль `SUPPLIER`; один поставщик может иметь несколько Procurement одного проекта; `rfqSentAt != NULL` фиксирует факт отправки запроса без email-автоматизации. `sequenceNumber` уникален для `project + supplier`; отображаемый номер формируется как `<нормализованное имя поставщика>_<sequence>_<date>` и не является первичным ключом. Удаление без счетов очищает строки и устанавливает `deletedAt`, сохраняя занятый номер; активные выборки исключают такие записи. Закупки со счетами не удаляются.
 
 `TODO / Open Question`: отмена/повторная отправка RFQ, ручная корректировка даты и жизненный цикл закупки.
 
@@ -230,10 +240,11 @@ Tentative decision: пара `catalogItem + supplier` предполагаетс
 
 Производные показатели `ProjectItem`:
 
-- `requestedQuantity` — сумма `ProcurementLine.requestedQuantity` по всем поставщикам;
+- `requestedQuantity` — сумма `ProcurementLine.requestedQuantity` по всем поставщикам только для Procurement с `rfqSentAt != NULL`;
+- `plannedQuantity` — сумма всех `ProcurementLine.requestedQuantity` независимо от `rfqSentAt`;
 - `orderedQuantity` — сумма `SupplierInvoiceLine.quantity` по всем поставщикам и счетам только при `paymentSubmittedDate != NULL`;
-- без ProcurementLine статус `NOT_REQUESTED`; при отправленном RFQ и нулевом ordered — `RFQ_SENT`; при ordered > 0 — `ORDER_PLACED`;
-- частичное покрытие не создает `PARTIALLY_ORDERED`, а отображается как `ordered / required`;
+- при нулевом planned статус `NOT_PLANNED`; при наличии неотправленных строк — `PLANNED`; частичное и полное покрытие отправленного запроса дают `PARTIALLY_REQUESTED` и `REQUESTED`;
+- положительное ordered имеет приоритет и дает `PARTIALLY_ORDERED` либо `ORDERED` относительно requiredQuantity;
 - `PARTIALLY_RECEIVED`, `RECEIVED`, `IN_STOCK` зарезервированы, но до появления фактических данных не вычисляются.
 
 `TODO / Open Question`: поступления, склад, возвраты, перепоставка, изменение потребности и отмена/изменение заказа.

@@ -25,6 +25,28 @@ class TemplateStructureTest {
                 .contains("Детализировать для передачи в цех");
     }
 
+    @Test
+    void procurementListSupportsMultiSelectionDeletion() throws IOException {
+        assertThat(resource("templates/procurements/list.html"))
+                .contains("id=\"procurement-delete-selection\"")
+                .contains("class=\"form-check-input procurement-delete-check\"")
+                .contains("id=\"delete-procurements\"")
+                .contains("delete-selected")
+                .contains("disabled>Удалить");
+    }
+
+    @Test
+    void procurementRowColorsOverrideBootstrapTablePainting() throws IOException {
+        assertThat(resource("static/css/app.css"))
+                .contains(".configuration-table .procurement-planned > td")
+                .contains("--bs-table-bg:#f5f3ed")
+                .contains(".configuration-table .procurement-requested > td")
+                .contains("--bs-table-bg:#fff9e8")
+                .contains(".configuration-table .procurement-order > td")
+                .contains("--bs-table-bg:#e5f1ff")
+                .contains("box-shadow:none!important");
+    }
+
     private String resource(String path) throws IOException {
         try (var stream = getClass().getClassLoader().getResourceAsStream(path)) {
             if (stream == null) {

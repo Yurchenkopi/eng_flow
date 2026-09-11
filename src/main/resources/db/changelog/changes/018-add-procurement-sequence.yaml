@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 018-add-procurement-sequence
+      author: engflow
+      changes:
+        - addColumn:
+            tableName: procurements
+            columns:
+              - column: { name: sequence_number, type: INT }
+        - sql:
+            sql: UPDATE procurements p SET sequence_number = (SELECT COUNT(*) FROM procurements earlier WHERE earlier.project_id = p.project_id AND (earlier.created_at < p.created_at OR (earlier.created_at = p.created_at AND earlier.id <= p.id)))
+        - addNotNullConstraint: { tableName: procurements, columnName: sequence_number, columnDataType: INT }
+        - addUniqueConstraint: { tableName: procurements, columnNames: 'project_id, sequence_number', constraintName: uk_procurements_project_sequence }

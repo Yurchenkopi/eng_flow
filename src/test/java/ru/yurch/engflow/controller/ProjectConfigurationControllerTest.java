@@ -11,6 +11,7 @@ import ru.yurch.engflow.service.ProjectItemService;
 import ru.yurch.engflow.service.ProjectService;
 import ru.yurch.engflow.service.ProcurementProgress;
 import ru.yurch.engflow.service.ProcurementService;
+import ru.yurch.engflow.service.OrganizationService;
 import ru.yurch.engflow.service.TransferActService;
 
 import java.math.BigDecimal;
@@ -30,7 +31,8 @@ class ProjectConfigurationControllerTest {
         ProjectAssemblyService assemblies = mock(ProjectAssemblyService.class);
         TransferActService transferActs = mock(TransferActService.class);
         ProcurementService procurements = mock(ProcurementService.class);
-        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements);
+        OrganizationService organizations = mock(OrganizationService.class);
+        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements,organizations);
 
         Project project = new Project();
         project.setId(1L);
@@ -42,15 +44,15 @@ class ProjectConfigurationControllerTest {
 
         when(projects.findById(1L)).thenReturn(project);
         when(assemblies.findByProject(1L)).thenReturn(List.of());
-        when(items.search(1L, null, null, "name", "asc")).thenReturn(List.of(item));
+        when(items.search(1L, null, null, null, "name", "asc")).thenReturn(List.of(item));
         when(transferActs.transferredByProject(1L)).thenReturn(Map.of(
                 10L, new BigDecimal("2"),
                 11L, new BigDecimal("7")
         ));
-        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(2L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_REQUESTED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("10"))));
+        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(2L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("10"))));
 
         ExtendedModelMap model = new ExtendedModelMap();
-        assertThat(controller.configuration(1L, null, null, "name", "asc", model))
+        assertThat(controller.configuration(1L, null, null, null, null, "name", "asc", model))
                 .isEqualTo("project-items/configuration");
 
         assertThat(value(model, "parentWorkshopTotal", 2L)).isEqualByComparingTo("8");
@@ -66,18 +68,19 @@ class ProjectConfigurationControllerTest {
         ProjectAssemblyService assemblies = mock(ProjectAssemblyService.class);
         TransferActService transferActs = mock(TransferActService.class);
         ProcurementService procurements = mock(ProcurementService.class);
-        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements);
+        OrganizationService organizations = mock(OrganizationService.class);
+        ProjectConfigurationController controller = new ProjectConfigurationController(projects, items, assemblies, transferActs,procurements,organizations);
 
         ProjectItem item = new ProjectItem();
         item.setId(3L);
         item.getAllocations().add(allocation(20L, "4", false));
-        when(items.search(1L, null, null, "name", "asc")).thenReturn(List.of(item));
+        when(items.search(1L, null, null, null, "name", "asc")).thenReturn(List.of(item));
         when(assemblies.findByProject(1L)).thenReturn(List.of());
         when(transferActs.transferredByProject(1L)).thenReturn(Map.of());
-        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(3L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_REQUESTED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("4"))));
+        when(procurements.progressFor(List.of(item))).thenReturn(Map.of(3L,new ProcurementProgress(ru.yurch.engflow.model.ProcurementStatus.NOT_PLANNED,BigDecimal.ZERO,BigDecimal.ZERO,new BigDecimal("4"))));
 
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.configuration(1L, null, null, "name", "asc", model);
+        controller.configuration(1L, null, null, null, null, "name", "asc", model);
 
         assertThat(value(model, "parentWorkshopTotal", 3L)).isZero();
         assertThat(value(model, "parentTransferred", 3L)).isZero();

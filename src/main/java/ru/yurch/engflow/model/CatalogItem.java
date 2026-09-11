@@ -35,6 +35,7 @@ public class CatalogItem {
     public String getNotes() { return notes; } public void setNotes(String notes) { this.notes = notes; }
     public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }
     public Set<ItemSupplier> getItemSuppliers(){return itemSuppliers;}
-    @Transient public String getSupplierSummary(){int count=itemSuppliers.size();if(count==0)return "—";if(count==1){Organization supplier=itemSuppliers.iterator().next().getSupplier();return supplier.getShortName()==null||supplier.getShortName().isBlank()?supplier.getName():supplier.getShortName();}int mod100=count%100,mod10=count%10;String word=mod100>=11&&mod100<=14?"поставщиков":mod10==1?"поставщик":mod10>=2&&mod10<=4?"поставщика":"поставщиков";return count+" "+word;}
+    @Transient public java.util.List<String> getSupplierNames(){return itemSuppliers.stream().map(ItemSupplier::getSupplier).filter(java.util.Objects::nonNull).map(supplier->supplier.getShortName()==null||supplier.getShortName().isBlank()?supplier.getName():supplier.getShortName()).filter(java.util.Objects::nonNull).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();}
+    @Transient public String getSupplierSummary(){var names=getSupplierNames();return names.isEmpty()?"—":String.join("\n",names);}
     @Transient public BigDecimal getQuantityStep() { String value=getUnit().trim().toLowerCase(java.util.Locale.ROOT); return "шт.".equals(value)?BigDecimal.ONE:("кг".equals(value)||"м".equals(value)?new BigDecimal("0.1"):new BigDecimal("0.0001")); }
 }

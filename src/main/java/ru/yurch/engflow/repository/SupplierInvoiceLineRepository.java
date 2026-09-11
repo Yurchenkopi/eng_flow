@@ -12,6 +12,7 @@ public interface SupplierInvoiceLineRepository extends JpaRepository<SupplierInv
     @EntityGraph(attributePaths={"supplierInvoice","procurementLine","procurementLine.projectItem","procurementLine.projectItem.catalogItem","procurementLine.projectItem.catalogItem.measurementUnit"})
     List<SupplierInvoiceLine> findBySupplierInvoiceIdOrderByIdAsc(Long supplierInvoiceId);
     boolean existsBySupplierInvoiceIdAndProcurementLineId(Long supplierInvoiceId,Long procurementLineId);
+    boolean existsByProcurementLineId(Long procurementLineId);
     @Query("select coalesce(sum(line.quantity),0) from SupplierInvoiceLine line where line.procurementLine.id=:procurementLineId")
     BigDecimal allocatedByProcurementLine(@Param("procurementLineId") Long procurementLineId);
     @Query("select coalesce(sum(line.quantity),0) from SupplierInvoiceLine line where line.procurementLine.projectItem.id=:projectItemId and line.supplierInvoice.paymentSubmittedDate is not null")

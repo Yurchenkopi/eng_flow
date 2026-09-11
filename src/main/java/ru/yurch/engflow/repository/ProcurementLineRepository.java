@@ -15,9 +15,15 @@ public interface ProcurementLineRepository extends JpaRepository<ProcurementLine
     @EntityGraph(attributePaths={"procurement","procurement.project","projectItem","projectItem.project","projectItem.catalogItem","projectItem.catalogItem.measurementUnit"})
     Optional<ProcurementLine> findByIdAndProcurementId(Long id,Long procurementId);
     boolean existsByProcurementIdAndProjectItemId(Long procurementId,Long projectItemId);
+    boolean existsByIdAndProcurementRfqSentAtIsNull(Long id);
     boolean existsByProjectItemIdAndProcurementRfqSentAtIsNotNull(Long projectItemId);
     boolean existsByProjectItemId(Long projectItemId);
     long countByProcurementId(Long procurementId);
+    void deleteByProcurementId(Long procurementId);
     @Query("select coalesce(sum(line.requestedQuantity),0) from ProcurementLine line where line.projectItem.id=:projectItemId")
     BigDecimal requestedByProjectItem(@Param("projectItemId") Long projectItemId);
+    @Query("select coalesce(sum(line.requestedQuantity),0) from ProcurementLine line where line.projectItem.id=:projectItemId and line.procurement.rfqSentAt is not null")
+    BigDecimal requestedSentByProjectItem(@Param("projectItemId") Long projectItemId);
+    @Query("select coalesce(sum(line.requestedQuantity),0) from ProcurementLine line where line.procurement.id=:procurementId")
+    BigDecimal requestedByProcurement(@Param("procurementId") Long procurementId);
 }

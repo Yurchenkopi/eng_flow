@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE) @ActiveProfiles("test") @Transactional
 class CatalogAndConfigurationServiceTest {
     @Autowired CatalogItemService catalogService; @Autowired ProjectItemService projectItemService;
-    @Autowired ProjectRepository projects; @Autowired ProjectItemRepository projectItems; @Autowired ProjectAssemblyRepository assemblies; @Autowired ProjectSubsectionRepository subsections; @Autowired ProjectItemController projectItemController; @Autowired MeasurementUnitRepository units;
+    @Autowired ProjectRepository projects; @Autowired ProjectItemRepository projectItems; @Autowired ProjectAssemblyRepository assemblies; @Autowired ProjectSubsectionRepository subsections; @Autowired ProjectItemController projectItemController; @Autowired MeasurementUnitRepository units; @Autowired OrganizationRepository organizations; @Autowired ItemSupplierRepository itemSuppliers;
     private CatalogItem valve; private CatalogItem tube;
     @BeforeEach void setUp() {
         valve = item("VAT-10", "Клапан", "VAT"); tube = item("DIN-20", "Труба", "Example");
@@ -41,8 +41,9 @@ class CatalogAndConfigurationServiceTest {
     @Test void configurationFilterDoesNotMixProjects() {
         Project first = project("ИТ701.00.00.000"), second = project("ИТ702.00.00.000");
         projectItems.save(projectItem(first, valve)); projectItems.save(projectItem(second, tube));
-        assertThat(projectItemService.search(first.getId(), "", null, "designation", "asc")).allMatch(item -> item.getProject().getId().equals(first.getId())).extracting(item -> item.getCatalogItem().getId()).containsExactly(valve.getId());
+        assertThat(projectItemService.search(first.getId(), "", null, null, "designation", "asc")).allMatch(item -> item.getProject().getId().equals(first.getId())).extracting(item -> item.getCatalogItem().getId()).containsExactly(valve.getId());
     }
+    @Test void supplierFilterWithMultipleSuppliersReturnsOneItemAndCombinesWithTextSearch(){Project project=project("ИТ718.00.00.000");ProjectItem saved=projectItems.save(projectItem(project,valve));Organization first=supplier("Пневматика"),second=supplier("Вакуум");relation(valve,first);relation(valve,second);assertThat(projectItemService.search(project.getId(),"клапан",null,first.getId(),"name","asc")).extracting(ProjectItem::getId).containsExactly(saved.getId());assertThat(projectItemService.search(project.getId(),"нет",null,first.getId(),"name","asc")).isEmpty();assertThat(projectItemService.search(project.getId(),"",null,second.getId(),"name","asc")).hasSize(1).first().satisfies(item->assertThat(item.getCatalogItem().getItemSuppliers()).hasSize(2));}
     @Test void projectItemIsUniquePerProjectAndCatalogAndQuantityIsAllocationSum() {
         Project project=project("ИТ703.00.00.000"); ProjectItem first=projectItem(project,valve);
         ProjectItemAllocation second=new ProjectItemAllocation();second.setQuantity(BigDecimal.ONE);second.setProjectAssembly(assembly(project,"Камера"));first.getAllocations().add(second);
@@ -80,7 +81,9 @@ class CatalogAndConfigurationServiceTest {
     private MeasurementUnit unit(String name){return units.findByName(name).orElseThrow();}
     private Project project(String designation) { Project project = new Project(); project.setDesignation(designation); project.setName("Проект"); return projects.save(project); }
     private ProjectAssembly assembly(Project project,String name){ProjectAssembly value=new ProjectAssembly();value.setProject(project);value.setName(name);return assemblies.save(value);}
+    private Organization supplier(String name){Organization value=new Organization();value.setName(name);value.getRoles().add(OrganizationRole.SUPPLIER);return organizations.save(value);}
+    private void relation(CatalogItem item,Organization supplier){ItemSupplier value=new ItemSupplier();value.setCatalogItem(item);value.setSupplier(supplier);itemSuppliers.save(value);item.getItemSuppliers().add(value);}
     private ProjectItemAllocation detailed(ProjectAssembly section,String subsection,String appliesFor,BigDecimal quantity){ProjectItemAllocation allocation=new ProjectItemAllocation();allocation.setProjectAssembly(section);allocation.setQuantity(quantity);allocation.setDetailForTransfer(true);allocation.setSubsectionDesignation(subsection);allocation.setSubsectionAppliesFor(appliesFor);return allocation;}
-    private void assertSearchHasOneItemWithBothAllocations(Project project,String query,Long assemblyId){var result=projectItemService.search(project.getId(),query,assemblyId,"name","asc");assertThat(result).hasSize(1);assertThat(result.getFirst().getAllocations()).hasSize(2);}
+    private void assertSearchHasOneItemWithBothAllocations(Project project,String query,Long assemblyId){var result=projectItemService.search(project.getId(),query,assemblyId,null,"name","asc");assertThat(result).hasSize(1);assertThat(result.getFirst().getAllocations()).hasSize(2);}
     private ProjectItem projectItem(Project project, CatalogItem catalogItem) { ProjectItem item = new ProjectItem(); item.setProject(project); item.setCatalogItem(catalogItem); ProjectItemAllocation allocation=new ProjectItemAllocation();allocation.setProjectItem(item);allocation.setQuantity(BigDecimal.ONE);item.getAllocations().add(allocation);return item; }
 }

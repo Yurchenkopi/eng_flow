@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 019-scope-procurement-sequence-by-supplier
+      author: engflow
+      changes:
+        - addColumn:
+            tableName: procurements
+            columns:
+              - column: { name: deleted_at, type: TIMESTAMP WITH TIME ZONE }
+        - dropUniqueConstraint:
+            tableName: procurements
+            constraintName: uk_procurements_project_sequence
+        - addUniqueConstraint:
+            tableName: procurements
+            columnNames: project_id, supplier_id, sequence_number
+            constraintName: uk_procurements_project_supplier_sequence
+        - createIndex:
+            tableName: procurements
+            indexName: idx_procurements_project_supplier_sequence
+            columns:
+              - column: { name: project_id }
+              - column: { name: supplier_id }
+              - column: { name: sequence_number }

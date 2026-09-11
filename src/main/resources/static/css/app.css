@@ -98,6 +98,7 @@ body {
 .autocomplete-create { border-top: 1px solid var(--app-border); }
 .autocomplete-option.active { background: #eaf2f8; }
 .toolbar,.page-toolbar { align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: .4rem; display: grid; gap: .5rem; grid-template-columns: minmax(260px,1fr) 230px auto auto; margin-bottom: .7rem; padding: .6rem; }
+.configuration-toolbar { grid-template-columns:minmax(260px,1fr) 220px 220px auto auto; }
 .selection-toolbar { align-items: center; display: flex; justify-content: space-between; margin: .45rem 0; }
 .selection-toolbar span { color: var(--app-muted); font-size: .8rem; }
 .role-badge { background: #edf3f7; border-radius: 999px; color: #46647c; display: inline-block; font-size: .72rem; margin-right: .25rem; padding: .16rem .45rem; }
@@ -135,12 +136,26 @@ body {
 .supplier-card .content-card-header small { color:var(--app-muted);display:block;margin-top:.25rem; }
 .supplier-editor { align-items:end;border-top:1px solid var(--app-border);display:grid;gap:1rem;grid-template-columns:minmax(220px,1.4fr) minmax(170px,1fr) minmax(220px,1.4fr) auto;padding:1.25rem; }
 .supplier-empty { margin:1rem 1.25rem; }
-.procurement-rfq { background:#fff9e8!important; }
-.procurement-order-partial { background:#eef6ff!important; }
-.procurement-order { background:#e5f1ff!important; }
-.procurement-partial-received { background:#edf8f0!important; }
-.procurement-received { background:#def3e6!important; }
+.configuration-table .procurement-requested > td { --bs-table-bg:#fff9e8;--bs-table-accent-bg:transparent;--bs-table-bg-state:transparent;--bs-table-bg-type:transparent;background-color:#fff9e8!important;box-shadow:none!important; }
+.configuration-table .procurement-planned > td { --bs-table-bg:#f5f3ed;--bs-table-accent-bg:transparent;--bs-table-bg-state:transparent;--bs-table-bg-type:transparent;background-color:#f5f3ed!important;box-shadow:none!important; }
+.configuration-table .procurement-order > td { --bs-table-bg:#e5f1ff;--bs-table-accent-bg:transparent;--bs-table-bg-state:transparent;--bs-table-bg-type:transparent;background-color:#e5f1ff!important;box-shadow:none!important; }
+.configuration-table .procurement-partial-received > td { --bs-table-bg:#edf8f0;--bs-table-accent-bg:transparent;--bs-table-bg-state:transparent;--bs-table-bg-type:transparent;background-color:#edf8f0!important;box-shadow:none!important; }
+.configuration-table .procurement-received > td { --bs-table-bg:#def3e6;--bs-table-accent-bg:transparent;--bs-table-bg-state:transparent;--bs-table-bg-type:transparent;background-color:#def3e6!important;box-shadow:none!important; }
 @media (max-width: 900px) { .supplier-editor { grid-template-columns:1fr; } }
+.analog-editor { align-items:end;display:grid;gap:1rem;grid-template-columns:minmax(260px,1fr) auto;padding:1.25rem; }
+.procurement-create-panel { background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:.5rem;margin:.6rem 0;padding:.7rem .85rem; }
+.procurement-create-title { font-size:.88rem;font-weight:650;margin-bottom:.55rem; }
+.procurement-create-controls { align-items:end;display:grid;gap:.7rem;grid-template-columns:minmax(250px,320px) minmax(300px,1fr) auto; }
+.procurement-allow-unlisted { align-items:center;cursor:pointer;min-height:38px;padding-bottom:.35rem; }
+.procurement-create-controls .btn { min-height:38px;padding-left:1rem;padding-right:1rem; }
+.procurement-quantity-editor { align-items:center;display:grid;gap:.35rem;grid-template-columns:110px auto;min-width:220px; }
+.procurement-quantity-editor small { grid-column:1/-1; }
+.supplier-list span { display:block;white-space:nowrap; }.supplier-list span+span { color:var(--text-muted);font-size:.8rem;margin-top:.1rem; }
+.selection-cell { cursor:default;min-width:42px;text-align:center; }.selection-cell .form-check-input { cursor:pointer;height:1.15rem;width:1.15rem; }
+.configuration-parent td:first-child { cursor:default;min-width:42px;text-align:center; }.configuration-parent td:first-child .form-check-input { cursor:pointer;height:1.15rem;width:1.15rem; }
+.configuration-parent td:nth-child(6) { line-height:1.35;white-space:pre-line; }
+.procurement-action-group { align-items:center;display:flex;gap:.5rem;justify-content:flex-end; }.procurement-action-group .form-select { min-width:260px; }
+@media (max-width: 900px) { .procurement-create-controls { grid-template-columns:1fr; }.procurement-allow-unlisted{padding-bottom:0} }
 .form-label { font-size: 0.84rem; font-weight: 600; margin-bottom: 0.35rem; }
 .form-control, .form-select { border-color: #cfd7df; font-size: 0.9rem; }
 .required { color: #b53e3e; }

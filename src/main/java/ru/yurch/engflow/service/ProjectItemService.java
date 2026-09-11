@@ -11,10 +11,11 @@ import java.util.*;
 public class ProjectItemService {
     private final ProjectItemRepository repository; private final ProjectService projectService; private final CatalogItemService catalogItemService; private final ProjectAssemblyService assemblyService;private final ProjectSubsectionService subsectionService;private final ru.yurch.engflow.repository.TransferActItemRepository transferActItems;private final ru.yurch.engflow.repository.ProcurementLineRepository procurementLines;
     public ProjectItemService(ProjectItemRepository repository, ProjectService projectService, CatalogItemService catalogItemService, ProjectAssemblyService assemblyService,ProjectSubsectionService subsectionService,ru.yurch.engflow.repository.TransferActItemRepository transferActItems,ru.yurch.engflow.repository.ProcurementLineRepository procurementLines) { this.repository = repository; this.projectService = projectService; this.catalogItemService = catalogItemService; this.assemblyService = assemblyService;this.subsectionService=subsectionService;this.transferActItems=transferActItems;this.procurementLines=procurementLines; }
-    public List<ProjectItem> findByProject(Long projectId) { return repository.findByProjectIdOrderByIdAsc(projectId); }
+    public List<ProjectItem> findByProject(Long projectId) { List<ProjectItem> items=repository.findByProjectIdOrderByIdAsc(projectId);initializeSuppliers(items);return items; }
     public Optional<ProjectItem> findExisting(Long projectId, Long catalogItemId) { return catalogItemId == null ? Optional.empty() : repository.findByProjectIdAndCatalogItemId(projectId, catalogItemId); }
-    public List<ProjectItem> search(Long projectId, String query, Long assemblyId, String sort, String direction) {
-        List<ProjectItem> result = repository.search(projectId, query == null ? "" : query.trim(), assemblyId, Sort.by("id"));
+    public List<ProjectItem> search(Long projectId, String query, Long assemblyId, Long supplierId, String sort, String direction) {
+        List<ProjectItem> result = repository.search(projectId, query == null ? "" : query.trim(), assemblyId, supplierId, Sort.by("id"));
+        initializeSuppliers(result);
         Comparator<ProjectItem> comparator = switch (sort == null ? "" : sort) {
             case "designation" -> Comparator.comparing(i -> Objects.toString(i.getCatalogItem().getDesignation(), ""), String.CASE_INSENSITIVE_ORDER);
             case "manufacturer" -> Comparator.comparing(i -> Objects.toString(i.getCatalogItem().getManufacturer(), ""), String.CASE_INSENSITIVE_ORDER);
@@ -26,6 +27,7 @@ public class ProjectItemService {
         result.sort(comparator.thenComparing(ProjectItem::getId)); return result;
     }
     public long countProjectsUsingCatalogItem(Long catalogItemId) { return repository.countProjectsUsingCatalogItem(catalogItemId); }
+    public java.math.BigDecimal requiredQuantity(Long projectItemId) { return repository.requiredQuantity(projectItemId); }
     public java.time.Instant lastConfigurationChange(Long projectId){return findByProject(projectId).stream().flatMap(item->java.util.stream.Stream.concat(java.util.stream.Stream.of(item.getUpdatedAt()),item.getAllocations().stream().map(ProjectItemAllocation::getUpdatedAt))).filter(Objects::nonNull).max(java.time.Instant::compareTo).orElse(null);}
     public ProjectItem findByProjectAndId(Long projectId, Long id) { return repository.findByIdAndProjectId(id, projectId).orElseThrow(() -> new IllegalArgumentException("Позиция проекта не найдена: " + id)); }
     @Transactional public ProjectItem create(Long projectId, ProjectItem item) {
@@ -41,7 +43,7 @@ public class ProjectItemService {
         item.getAllocations().removeIf(allocation->allocation.getId()!=null&&!retained.contains(allocation.getId()));
         return repository.save(item);
     }
-    @Transactional public void delete(Long projectId, Long id) { ProjectItem item=findByProjectAndId(projectId,id);if(transferActItems.existsByProjectItemId(id))throw new IllegalStateException("Позицию нельзя удалить: она уже используется в акте приема-передачи");if(procurementLines.existsByProjectItemId(id))throw new IllegalStateException("Позицию нельзя удалить: она уже используется в закупке");repository.delete(item); }
+    @Transactional public java.math.BigDecimal delete(Long projectId, Long id) { ProjectItem item=findByProjectAndId(projectId,id);if(transferActItems.existsByProjectItemId(id))throw new IllegalStateException("Позицию нельзя удалить: она уже используется в акте приема-передачи");java.math.BigDecimal required=item.getRequiredQuantity();java.math.BigDecimal planned=procurementLines.requestedByProjectItem(id);if(planned.signum()==0){repository.delete(item);return required;}if(planned.compareTo(required)>=0)throw new IllegalStateException("Позицию нельзя удалить: все количество уже включено в закупки");java.math.BigDecimal toRemove=required.subtract(planned);java.math.BigDecimal remaining=toRemove;List<ProjectItemAllocation> allocations=new ArrayList<>(item.getAllocations());Collections.reverse(allocations);for(ProjectItemAllocation allocation:allocations){if(remaining.signum()==0)break;java.math.BigDecimal removable=allocation.getQuantity().min(remaining);allocation.setQuantity(allocation.getQuantity().subtract(removable));remaining=remaining.subtract(removable);}item.getAllocations().removeIf(allocation->allocation.getQuantity().signum()==0);repository.save(item);return toRemove; }
     private void resolveReferences(Long projectId, ProjectItem item) {
         if (item.getCatalogItem() == null || item.getCatalogItem().getId() == null) throw new IllegalArgumentException("Выберите изделие");
         item.setCatalogItem(catalogItemService.findById(item.getCatalogItem().getId()));
@@ -67,6 +69,7 @@ public class ProjectItemService {
         }
     }
     private String trimToNull(String value){return value==null||value.isBlank()?null:value.trim();}
+    private void initializeSuppliers(Collection<ProjectItem> items){for(ProjectItem item:items)for(ItemSupplier relation:item.getCatalogItem().getItemSuppliers())relation.getSupplier().getName();}
     private String assemblyNames(ProjectItem item) { return item.getAllocations().stream().map(ProjectItemAllocation::getProjectAssembly).filter(Objects::nonNull).map(ProjectAssembly::getName).sorted().reduce((a,b)->a+", "+b).orElse(""); }
     public static class DuplicateProjectItemException extends IllegalArgumentException { private final Long existingId; public DuplicateProjectItemException(Long existingId) { super("Это изделие уже добавлено в комплектацию"); this.existingId=existingId; } public Long getExistingId(){return existingId;} }
 }

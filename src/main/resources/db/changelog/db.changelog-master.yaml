@@ -31,3 +31,9 @@ databaseChangeLog:
       file: db/changelog/changes/015-move-allocation-applies-for.yaml
   - include:
       file: db/changelog/changes/016-create-procurement.yaml
+  - include:
+      file: db/changelog/changes/017-create-catalog-item-analogs.yaml
+  - include:
+      file: db/changelog/changes/018-add-procurement-sequence.yaml
+  - include:
+      file: db/changelog/changes/019-scope-procurement-sequence-by-supplier.yaml
